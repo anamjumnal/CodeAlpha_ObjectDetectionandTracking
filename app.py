@@ -1,4 +1,4 @@
-import os
+
 import time
 from pathlib import Path
 
@@ -201,10 +201,65 @@ section[data-testid="stSidebar"] [data-baseweb="slider"] {
 section[data-testid="stSidebar"] hr {
     border-color: rgba(255,63,159,.30) !important;
 }
-/* Streamlit's top chrome should never become a black strip */
+/* Force Streamlit chrome and sidebar controls to stay bright/readable */
+header[data-testid="stHeader"],
+[data-testid="stToolbar"],
+[data-testid="stStatusWidget"],
+[data-testid="stDecoration"] {
+    background: transparent !important;
+    background-color: transparent !important;
+}
 [data-testid="stDecoration"] {
     background: linear-gradient(90deg,#ff4fa3,#9b5cff,#20c9e8,#ffd43b) !important;
     height: 4px !important;
+}
+[data-testid="stToolbar"] button,
+[data-testid="stToolbar"] button * {
+    color: #7a285d !important;
+}
+
+/* Sidebar model + tracker selectboxes: white/pink, never black */
+section[data-testid="stSidebar"] [data-testid="stSelectbox"] [data-baseweb="select"] > div {
+    background: #ffffff !important;
+    background-color: #ffffff !important;
+    color: #5b1745 !important;
+    border: 2px solid #ff9dce !important;
+    border-radius: 12px !important;
+}
+section[data-testid="stSidebar"] [data-testid="stSelectbox"] [data-baseweb="select"] span {
+    color: #5b1745 !important;
+    background: transparent !important;
+}
+section[data-testid="stSidebar"] [data-testid="stSelectbox"] [data-baseweb="select"] svg {
+    fill: #d42b87 !important;
+    color: #d42b87 !important;
+}
+
+/* Dropdown popup */
+div[data-baseweb="popover"],
+div[data-baseweb="popover"] > div,
+div[data-baseweb="menu"] {
+    background: #ffffff !important;
+    background-color: #ffffff !important;
+}
+div[data-baseweb="menu"] li,
+div[data-baseweb="menu"] li * {
+    color: #5b1745 !important;
+    background: #ffffff !important;
+}
+div[data-baseweb="menu"] li:hover,
+div[data-baseweb="menu"] li:hover * {
+    background: #ffd2e9 !important;
+    color: #7a285d !important;
+}
+
+/* Sidebar slider */
+section[data-testid="stSidebar"] [data-baseweb="slider"] [role="slider"] {
+    background: #d42b87 !important;
+    border-color: #d42b87 !important;
+}
+section[data-testid="stSidebar"] [data-baseweb="slider"] > div > div {
+    background: #ff9dce !important;
 }
 
 </style>
@@ -380,7 +435,7 @@ elif page == "📹 Video Lab":
                 st.markdown(f'<div class="metric"><div class="label">{label}</div><div class="value">{value}</div></div>', unsafe_allow_html=True)
 
         st.markdown("### Processing")
-        start = st.button("▶ Start detection & tracking", type="primary",width="stretch")
+        start = st.button("▶ Start detection & tracking", type="primary", use_container_width=True)
         if start:
             model = load_model(model_choice)
             frame_box = st.empty()
