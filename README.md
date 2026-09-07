@@ -1,84 +1,90 @@
-# VisionFlow — CodeAlpha AI Internship Task 4
+# 👁️ VisionFlow — Object Detection & Multi-Object Tracking
 
-A polished object detection and tracking web application built with Streamlit, OpenCV, Ultralytics YOLO and ByteTrack/BoT-SORT.
+> A real-time computer vision web application built with **YOLO + Streamlit** for detecting, classifying, and tracking multiple objects across images and video frames.
 
-## Features
+## 🚀 Live Demo
 
-- Real-time webcam detection
-- Uploaded video detection
-- Pretrained YOLO model
-- Bounding boxes and labels
-- Multi-object tracking
-- Persistent track IDs
-- Confidence / IoU controls
-- ByteTrack and BoT-SORT
-- Image inspection mode
-- Analytics dashboard
-- Multi-page UI
+🌐 **Try VisionFlow Online:**  
+https://visionflow-object-detection.streamlit.app/
 
-## 1. Install
+---
 
-Use Python 3.10 or 3.11.
+## 📌 About the Project
 
-```bash
-python -m venv .venv
-```
+**VisionFlow** is a real-time Object Detection and Multi-Object Tracking application developed as part of the **CodeAlpha Artificial Intelligence Internship — Task 4**.
 
-Windows:
+The application uses a pretrained **YOLO model from Ultralytics** to detect objects and combines it with modern tracking algorithms to maintain persistent IDs for objects across consecutive video frames.
 
-```bash
-.venv\Scripts\activate
-```
+The system provides an interactive web interface where users can upload images/videos or use their webcam for real-time computer vision analysis.
 
-macOS/Linux:
+---
 
-```bash
-source .venv/bin/activate
-```
+## ✨ Key Features
 
-Then:
+### 🎯 Object Detection
+- Detects multiple objects in images and videos
+- Draws bounding boxes around detected objects
+- Displays object class labels
+- Shows detection confidence scores
+- Supports pretrained YOLO models
 
-```bash
-pip install -r requirements.txt
-```
+### 🔄 Multi-Object Tracking
+- Tracks multiple objects across video frames
+- Assigns unique tracking IDs
+- Maintains object identities while they move
+- Supports **ByteTrack**
+- Supports **BoT-SORT**
 
-## 2. Run
+### 🎥 Real-Time Video Processing
+- Upload and process video files
+- Real-time detection and tracking
+- Webcam-based detection
+- Frame-by-frame object analysis
 
-```bash
-streamlit run app.py
-```
+### 🖼️ Image Inspector
+- Upload an image for object detection
+- Adjustable confidence threshold
+- Adjustable IoU threshold
+- Visual bounding-box results
 
-On first run, Ultralytics downloads the selected YOLO weights automatically.
+### 📊 Analytics
+- Object counts
+- Tracking information
+- Detection statistics
+- Performance information
 
-## 3. Best demo
+### 🎨 Interactive UI
+- Modern multicolour interface
+- Dedicated pages for different workflows
+- Configurable YOLO model and tracking settings
+- User-friendly Streamlit dashboard
 
-1. Open Video Lab.
-2. Upload a street / traffic / people video.
-3. Select `yolo11n.pt`.
-4. Confidence: 0.35.
-5. Tracker: `bytetrack.yaml`.
-6. Click Start detection & tracking.
-7. Point out the bounding boxes, labels and IDs.
-8. Open Analytics.
+---
 
-## 4. Webcam
+## 🧠 How It Works
 
-Open Live Detection and allow browser camera access.
+VisionFlow follows a simple computer vision pipeline:
 
-If webcam mode is unavailable, make sure:
-
-```bash
-pip install -r requirements.txt
-```
-
-was completed and restart Streamlit.
-
-## Notes for deployment
-
-For Streamlit Community Cloud, add all packages in `requirements.txt`. Browser webcam support may require HTTPS, which Streamlit Community Cloud provides.
-
-For a free CPU deployment, `yolo11n.pt` is recommended because it is lightweight.
-
-## Suggested project title
-
-VisionFlow — Real-Time Object Detection & Multi-Object Tracking System
+```text
+          Input
+            │
+     ┌──────┴──────┐
+     │             │
+   Image         Video
+     │             │
+     └──────┬──────┘
+            ↓
+       YOLO Detection
+            ↓
+     Bounding Boxes
+            ↓
+     Object Tracking
+      ┌─────┴─────┐
+      │           │
+  ByteTrack   BoT-SORT
+      │           │
+      └─────┬─────┘
+            ↓
+     Persistent IDs
+            ↓
+   Analytics + Output
