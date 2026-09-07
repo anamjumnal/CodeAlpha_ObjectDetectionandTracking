@@ -262,6 +262,50 @@ section[data-testid="stSidebar"] [data-baseweb="slider"] > div > div {
     background: #ff9dce !important;
 }
 
+
+/* Cloud-safe light widget rendering */
+[data-testid="stToolbar"],
+[data-testid="stStatusWidget"],
+header[data-testid="stHeader"] {
+    background: transparent !important;
+}
+
+section[data-testid="stSidebar"] [data-baseweb="select"] > div,
+section[data-testid="stSidebar"] [data-testid="stSelectbox"] [data-baseweb="select"] > div {
+    background: #ffffff !important;
+    color: #5b1745 !important;
+    border: 2px solid #ff8bc4 !important;
+    box-shadow: none !important;
+}
+
+section[data-testid="stSidebar"] [data-baseweb="select"] span,
+section[data-testid="stSidebar"] [data-testid="stSelectbox"] [data-baseweb="select"] span {
+    color: #5b1745 !important;
+}
+
+section[data-testid="stSidebar"] [data-baseweb="select"] svg {
+    fill: #d42b87 !important;
+}
+
+div[data-baseweb="popover"],
+div[data-baseweb="popover"] > div,
+div[data-baseweb="menu"] {
+    background: #ffffff !important;
+    color: #5b1745 !important;
+}
+
+div[data-baseweb="menu"] li,
+div[data-baseweb="menu"] li * {
+    background: #ffffff !important;
+    color: #5b1745 !important;
+}
+
+div[data-baseweb="menu"] li:hover,
+div[data-baseweb="menu"] li:hover * {
+    background: #ffd2e9 !important;
+    color: #5b1745 !important;
+}
+
 </style>
 """, unsafe_allow_html=True)
 
@@ -435,7 +479,7 @@ elif page == "📹 Video Lab":
                 st.markdown(f'<div class="metric"><div class="label">{label}</div><div class="value">{value}</div></div>', unsafe_allow_html=True)
 
         st.markdown("### Processing")
-        start = st.button("▶ Start detection & tracking", type="primary", use_container_width=True)
+        start = st.button("▶ Start detection & tracking", type="primary", width="stretch")
         if start:
             model = load_model(model_choice)
             frame_box = st.empty()
@@ -469,7 +513,7 @@ elif page == "📹 Video Lab":
                     class_totals[k] = class_totals.get(k, 0) + v
                 unique_ids.update(ids)
 
-                frame_box.image(cv2.cvtColor(annotated, cv2.COLOR_BGR2RGB), channels="RGB", use_container_width=True)
+                frame_box.image(cv2.cvtColor(annotated, cv2.COLOR_BGR2RGB), channels="RGB", width="stretch")
                 processed += 1
 
                 elapsed = max(time.time() - t0, 0.001)
@@ -500,19 +544,29 @@ elif page == "🖼️ Image Inspector":
         image = Image.open(image_file).convert("RGB")
         model = load_model(model_choice)
         arr = np.array(image)
-        result = model(arr, conf=conf, iou=iou, verbose=False)[0]
+        # Image detection uses prediction only (never tracking) and a slightly
+        # lower threshold + larger inference size so small/crowded objects are
+        # easier to detect in high-resolution demo images.
+        image_conf = min(conf, 0.20)
+        result = model.predict(
+            source=arr,
+            conf=image_conf,
+            iou=iou,
+            imgsz=1280,
+            verbose=False,
+        )[0]
         annotated = result.plot(conf=True, labels=True, boxes=True)
         count, classes, ids = result_stats(result)
 
         a,b = st.columns(2)
         with a:
-            st.image(image, caption="Original", use_container_width=True)
+            st.image(image, caption="Original", width="stretch")
         with b:
-            st.image(cv2.cvtColor(annotated, cv2.COLOR_BGR2RGB), caption="Detected objects", use_container_width=True)
+            st.image(cv2.cvtColor(annotated, cv2.COLOR_BGR2RGB), caption="Detected objects", width="stretch")
         x,y,z = st.columns(3)
         x.metric("Objects", count)
         y.metric("Classes", len(classes))
-        z.metric("Confidence threshold", f"{conf:.2f}")
+        z.metric("Confidence threshold", f"{image_conf:.2f}")
         st.json(classes)
 
 # -----------------------------
