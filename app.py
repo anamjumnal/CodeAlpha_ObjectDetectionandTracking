@@ -16,12 +16,14 @@ try:
 except Exception:
     WEBRTC_AVAILABLE = False
 
+
 st.set_page_config(
     page_title="VisionFlow — Object Detection & Tracking",
     page_icon="👁️",
     layout="wide",
     initial_sidebar_state="expanded",
 )
+
 
 # -----------------------------
 # Theme / UI
@@ -107,8 +109,17 @@ section[data-testid="stSidebar"] {
     box-shadow: 0 8px 22px rgba(236,72,153,.10);
 }
 
-.metric .label { color:#8b4776; font-size:.82rem; }
-.metric .value { font-size:1.7rem; font-weight:700; margin-top:4px; color:#d92d86; }
+.metric .label {
+    color:#8b4776;
+    font-size:.82rem;
+}
+
+.metric .value {
+    font-size:1.7rem;
+    font-weight:700;
+    margin-top:4px;
+    color:#d92d86;
+}
 
 .section-title {
     font-family:'Space Grotesk', sans-serif;
@@ -138,7 +149,9 @@ div[data-testid="stFileUploader"] section {
     background: transparent !important;
 }
 
-.stRadio label, .stSelectbox label, .stSlider label {
+.stRadio label,
+.stSelectbox label,
+.stSlider label {
     color:#6d2858 !important;
     font-weight:700 !important;
 }
@@ -154,10 +167,15 @@ div[data-testid="stFileUploader"] section {
     border-radius: 18px;
 }
 
-.small { color:#7e5271; font-size:.86rem; }
-footer { visibility:hidden; }
+.small {
+    color:#7e5271;
+    font-size:.86rem;
+}
 
-/* --- Strong readability + no black UI areas --- */
+footer {
+    visibility:hidden;
+}
+
 header[data-testid="stHeader"] {
     background: transparent !important;
 }
@@ -212,32 +230,39 @@ section[data-testid="stSidebar"] hr {
     border-color: rgba(255,63,159,.30) !important;
 }
 
-/* Streamlit's top chrome should never become a black strip */
 [data-testid="stDecoration"] {
     background: linear-gradient(90deg,#ff4fa3,#9b5cff,#20c9e8,#ffd43b) !important;
     height: 4px !important;
 }
-
 </style>
 """, unsafe_allow_html=True)
+
 
 # -----------------------------
 # Model
 # -----------------------------
 MODEL_DIR = Path("models")
 MODEL_DIR.mkdir(exist_ok=True)
+
 DEFAULT_MODEL = "yolo11n.pt"
+
 
 @st.cache_resource(show_spinner="Loading the computer-vision model…")
 def load_model(model_name: str):
     return YOLO(model_name)
 
+
 # -----------------------------
 # Detection helpers
 # -----------------------------
 def draw_results(frame, result):
-    annotated = result.plot(conf=True, labels=True, boxes=True)
+    annotated = result.plot(
+        conf=True,
+        labels=True,
+        boxes=True
+    )
     return annotated
+
 
 def result_stats(result):
     count = 0
@@ -245,21 +270,37 @@ def result_stats(result):
     ids = set()
 
     if result.boxes is not None:
+
         count = len(result.boxes)
 
-        for cls in result.boxes.cls.tolist() if result.boxes.cls is not None else []:
-            name = result.names.get(int(cls), str(int(cls)))
-            classes[name] = classes.get(name, 0) + 1
+        for cls in (
+            result.boxes.cls.tolist()
+            if result.boxes.cls is not None
+            else []
+        ):
+            name = result.names.get(
+                int(cls),
+                str(int(cls))
+            )
+
+            classes[name] = (
+                classes.get(name, 0) + 1
+            )
 
         if result.boxes.id is not None:
-            ids = {int(x) for x in result.boxes.id.tolist()}
+            ids = {
+                int(x)
+                for x in result.boxes.id.tolist()
+            }
 
     return count, classes, ids
+
 
 # -----------------------------
 # Sidebar
 # -----------------------------
 with st.sidebar:
+
     st.markdown(
         '<div style="font-size:1.65rem;font-weight:800;color:#d42b87 !important;margin-bottom:2px;">👁️ VisionFlow</div>',
         unsafe_allow_html=True
@@ -291,7 +332,10 @@ with st.sidebar:
 
     model_choice = st.selectbox(
         "YOLO model",
-        ["yolo11n.pt", "yolo11s.pt"],
+        [
+            "yolo11n.pt",
+            "yolo11s.pt"
+        ],
         index=0
     )
 
@@ -313,11 +357,14 @@ with st.sidebar:
 
     tracker = st.selectbox(
         "Tracker",
-        ["bytetrack.yaml", "botsort.yaml"]
+        [
+            "bytetrack.yaml",
+            "botsort.yaml"
+        ]
     )
 
     st.divider()
-    st.markdown('', unsafe_allow_html=True)
+
 
 # -----------------------------
 # Page: Home
@@ -374,7 +421,9 @@ if page == "🏠 Command Center":
         [c1, c2, c3, c4],
         cards
     ):
+
         with col:
+
             st.markdown(
                 f'<div style="padding:20px;border-radius:23px;background:linear-gradient(135deg,{bg},#ffffff);'
                 f'border:3px solid {accent};box-shadow:0 10px 25px rgba(0,0,0,.08);min-height:145px;">'
@@ -402,6 +451,7 @@ if page == "🏠 Command Center":
         "Tip: For the strongest demo, use a video containing multiple moving objects so the persistent IDs are clearly visible."
     )
 
+
 # -----------------------------
 # Page: Live Detection
 # -----------------------------
@@ -420,7 +470,9 @@ elif page == "🎥 Live Detection":
             "Webcam mode needs streamlit-webrtc. Install the requirements from requirements.txt and restart the app."
         )
 
-        st.code("pip install -r requirements.txt")
+        st.code(
+            "pip install -r requirements.txt"
+        )
 
     else:
 
@@ -430,7 +482,9 @@ elif page == "🎥 Live Detection":
             "Allow browser camera permission when prompted. Detection and tracking run on incoming frames."
         )
 
-        model = load_model(model_choice)
+        model = load_model(
+            model_choice
+        )
 
         class VideoProcessor:
 
@@ -442,7 +496,9 @@ elif page == "🎥 Live Detection":
 
             def recv(self, frame):
 
-                img = frame.to_ndarray(format="bgr24")
+                img = frame.to_ndarray(
+                    format="bgr24"
+                )
 
                 results = self.model.track(
                     img,
@@ -455,9 +511,14 @@ elif page == "🎥 Live Detection":
 
                 result = results[0]
 
-                annotated = draw_results(img, result)
+                annotated = draw_results(
+                    img,
+                    result
+                )
 
-                self.last_count, _, self.last_ids = result_stats(result)
+                self.last_count, _, self.last_ids = result_stats(
+                    result
+                )
 
                 self.frame_count += 1
 
@@ -488,6 +549,7 @@ elif page == "🎥 Live Detection":
             async_processing=True,
         )
 
+
 # -----------------------------
 # Page: Video Lab
 # -----------------------------
@@ -502,28 +564,31 @@ elif page == "📹 Video Lab":
 
     uploaded = st.file_uploader(
         "Upload a video",
-        type=["mp4", "avi", "mov", "mkv", "webm"]
+        type=[
+            "mp4",
+            "avi",
+            "mov",
+            "mkv",
+            "webm"
+        ]
     )
 
     if uploaded:
 
-        # -----------------------------
-        # Video preview
-        # -----------------------------
-        video_bytes = uploaded.getvalue()
-
-        st.markdown("### Uploaded Video")
-
-        st.video(video_bytes)
-
-        # Save uploaded video for OpenCV processing
+        # Save uploaded video
         temp = Path("temp_input.mp4")
-        temp.write_bytes(video_bytes)
+        temp.write_bytes(
+            uploaded.getbuffer()
+        )
 
-        cap = cv2.VideoCapture(str(temp))
+        cap = cv2.VideoCapture(
+            str(temp)
+        )
 
         total = int(
-            cap.get(cv2.CAP_PROP_FRAME_COUNT)
+            cap.get(
+                cv2.CAP_PROP_FRAME_COUNT
+            )
         ) or 0
 
         fps = cap.get(
@@ -531,11 +596,15 @@ elif page == "📹 Video Lab":
         ) or 25
 
         width = int(
-            cap.get(cv2.CAP_PROP_FRAME_WIDTH)
+            cap.get(
+                cv2.CAP_PROP_FRAME_WIDTH
+            )
         ) or 640
 
         height = int(
-            cap.get(cv2.CAP_PROP_FRAME_HEIGHT)
+            cap.get(
+                cv2.CAP_PROP_FRAME_HEIGHT
+            )
         ) or 480
 
         st.markdown("### Source")
@@ -543,26 +612,33 @@ elif page == "📹 Video Lab":
         m1, m2, m3, m4 = st.columns(4)
 
         for col, label, value in [
+
             (
                 m1,
                 "Resolution",
                 f"{width} × {height}"
             ),
+
             (
                 m2,
                 "FPS",
                 f"{fps:.1f}"
             ),
+
             (
                 m3,
                 "Frames",
                 str(total)
             ),
+
             (
                 m4,
                 "Duration",
-                f"{total/fps:.1f}s" if fps else "—"
+                f"{total / fps:.1f}s"
+                if fps
+                else "—"
             ),
+
         ]:
 
             with col:
@@ -585,27 +661,45 @@ elif page == "📹 Video Lab":
 
         if start:
 
-            model = load_model(model_choice)
+            model = load_model(
+                model_choice
+            )
 
+            # THIS IS THE SINGLE VIDEO DISPLAY.
+            # Each processed frame replaces the previous frame.
             frame_box = st.empty()
+
             progress = st.progress(0)
+
             status = st.empty()
+
             stats_box = st.empty()
 
             class_totals = {}
+
             unique_ids = set()
 
             processed = 0
 
             t0 = time.time()
 
+            # Target time between frames
+            frame_delay = (
+                1.0 / fps
+                if fps > 0
+                else 0.04
+            )
+
             while True:
+
+                frame_start = time.time()
 
                 ok, frame = cap.read()
 
                 if not ok:
                     break
 
+                # YOLO detection + tracking
                 results = model.track(
                     frame,
                     persist=True,
@@ -617,6 +711,7 @@ elif page == "📹 Video Lab":
 
                 result = results[0]
 
+                # Draw detection boxes + labels + IDs
                 annotated = draw_results(
                     frame,
                     result
@@ -626,6 +721,7 @@ elif page == "📹 Video Lab":
                     result
                 )
 
+                # Update analytics
                 for k, v in classes.items():
 
                     class_totals[k] = (
@@ -634,6 +730,8 @@ elif page == "📹 Video Lab":
 
                 unique_ids.update(ids)
 
+                # SHOW THE CURRENT DETECTED FRAME
+                # This is the video playing on screen.
                 frame_box.image(
                     cv2.cvtColor(
                         annotated,
@@ -653,12 +751,17 @@ elif page == "📹 Video Lab":
                 speed = processed / elapsed
 
                 pct = (
-                    min(processed / total, 1.0)
+                    min(
+                        processed / total,
+                        1.0
+                    )
                     if total
                     else 0
                 )
 
-                progress.progress(pct)
+                progress.progress(
+                    pct
+                )
 
                 status.markdown(
                     f"**Frame {processed:,} / {total:,}** · "
@@ -673,6 +776,22 @@ elif page == "📹 Video Lab":
                     "class_counts": classes
                 })
 
+                # -----------------------------
+                # Keep playback moving normally
+                # -----------------------------
+                processing_time = (
+                    time.time() - frame_start
+                )
+
+                remaining_delay = (
+                    frame_delay - processing_time
+                )
+
+                if remaining_delay > 0:
+                    time.sleep(
+                        remaining_delay
+                    )
+
             cap.release()
 
             st.success(
@@ -680,7 +799,9 @@ elif page == "📹 Video Lab":
                 f"with {len(unique_ids)} unique track IDs."
             )
 
-            st.session_state["last_analytics"] = {
+            st.session_state[
+                "last_analytics"
+            ] = {
                 "class_totals": class_totals,
                 "unique_ids": len(unique_ids),
                 "frames": processed,
@@ -698,6 +819,7 @@ elif page == "📹 Video Lab":
             unsafe_allow_html=True
         )
 
+
 # -----------------------------
 # Page: Image Inspector
 # -----------------------------
@@ -712,7 +834,12 @@ elif page == "🖼️ Image Inspector":
 
     image_file = st.file_uploader(
         "Upload an image",
-        type=["jpg", "jpeg", "png", "webp"]
+        type=[
+            "jpg",
+            "jpeg",
+            "png",
+            "webp"
+        ]
     )
 
     if image_file:
@@ -782,7 +909,10 @@ elif page == "🖼️ Image Inspector":
             f"{conf:.2f}"
         )
 
-        st.json(classes)
+        st.json(
+            classes
+        )
+
 
 # -----------------------------
 # Page: Analytics
@@ -864,6 +994,7 @@ elif page == "📊 Analytics":
             st.info(
                 "No object classes were detected in the last run."
             )
+
 
 # -----------------------------
 # Page: About
