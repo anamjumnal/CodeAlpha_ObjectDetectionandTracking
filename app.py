@@ -1,6 +1,6 @@
-import os
 import time
 import threading
+import textwrap
 from pathlib import Path
 
 import cv2
@@ -9,7 +9,7 @@ import streamlit as st
 from PIL import Image
 from ultralytics import YOLO
 
-# Optional webcam + processed video streaming
+# Optional webcam / processed-video support
 try:
     import av
     from streamlit_webrtc import (
@@ -36,247 +36,273 @@ st.set_page_config(
 
 
 # ============================================================
+# HTML HELPER
+# ============================================================
+
+def html(content):
+    """
+    Removes Python indentation before sending HTML to Streamlit.
+    This prevents Streamlit from treating indented HTML as code.
+    """
+    st.markdown(
+        textwrap.dedent(content).strip(),
+        unsafe_allow_html=True,
+    )
+
+
+# ============================================================
 # THEME / UI
 # ============================================================
 
 st.markdown(
-    """
-<style>
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap');
+    textwrap.dedent(
+        """
+        <style>
+        @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap');
 
-html, body, [class*="css"] {
-    font-family: 'DM Sans', sans-serif;
-}
+        html, body, [class*="css"] {
+            font-family: 'DM Sans', sans-serif;
+        }
 
-.stApp {
-    background:
-        radial-gradient(circle at 5% 5%, rgba(255, 20, 147, .22), transparent 25%),
-        radial-gradient(circle at 95% 8%, rgba(0, 210, 255, .20), transparent 23%),
-        radial-gradient(circle at 80% 92%, rgba(255, 190, 30, .22), transparent 25%),
-        radial-gradient(circle at 10% 90%, rgba(124, 58, 237, .16), transparent 24%),
-        #fff7fc;
-    color: #32152f;
-}
+        .stApp {
+            background:
+                radial-gradient(circle at 5% 5%, rgba(255, 20, 147, .22), transparent 25%),
+                radial-gradient(circle at 95% 8%, rgba(0, 210, 255, .20), transparent 23%),
+                radial-gradient(circle at 80% 92%, rgba(255, 190, 30, .22), transparent 25%),
+                radial-gradient(circle at 10% 90%, rgba(124, 58, 237, .16), transparent 24%),
+                #fff7fc;
+            color: #32152f;
+        }
 
-section[data-testid="stSidebar"] {
-    background:
-        linear-gradient(180deg, #ffd1ea 0%, #ffeaf6 42%, #e7ddff 100%);
-    border-right: 2px solid #ff5cac;
-}
+        section[data-testid="stSidebar"] {
+            background:
+                linear-gradient(180deg, #ffd1ea 0%, #ffeaf6 42%, #e7ddff 100%);
+            border-right: 2px solid #ff5cac;
+        }
 
-.block-container {
-    padding-top: 1.2rem;
-    max-width: 1450px;
-}
+        .block-container {
+            padding-top: 1.2rem;
+            max-width: 1450px;
+        }
 
-.hero {
-    padding: 30px 34px;
-    border-radius: 30px;
-    background:
-        linear-gradient(
-            115deg,
-            #ff4fa3 0%,
-            #ff78bd 25%,
-            #9b5cff 52%,
-            #20c9e8 76%,
-            #ffd43b 100%
-        );
-    border: 3px solid rgba(255,255,255,.8);
-    box-shadow: 0 18px 50px rgba(236, 72, 153, .25);
-    color: white;
-}
+        .hero {
+            padding: 30px 34px;
+            border-radius: 30px;
+            background:
+                linear-gradient(
+                    115deg,
+                    #ff4fa3 0%,
+                    #ff78bd 25%,
+                    #9b5cff 52%,
+                    #20c9e8 76%,
+                    #ffd43b 100%
+                );
+            border: 3px solid rgba(255,255,255,.8);
+            box-shadow: 0 18px 50px rgba(236, 72, 153, .25);
+            color: white;
+        }
 
-.hero h1 {
-    font-family: 'Space Grotesk', sans-serif;
-    font-size: clamp(2.2rem, 4vw, 4rem);
-    margin: 4px 0 0;
-    letter-spacing: -2px;
-    color: white;
-}
+        .hero h1 {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: clamp(2.2rem, 4vw, 4rem);
+            margin: 4px 0 0;
+            letter-spacing: -2px;
+            color: white;
+        }
 
-.hero p {
-    color: rgba(255,255,255,.94);
-    font-size: 1.05rem;
-    margin-top: 10px;
-}
+        .hero p {
+            color: rgba(255,255,255,.94);
+            font-size: 1.05rem;
+            margin-top: 10px;
+        }
 
-.badge {
-    display: inline-block;
-    padding: 7px 13px;
-    border-radius: 999px;
-    background: #fff3a6;
-    color: #7a285d;
-    border: 2px solid white;
-    font-size: .82rem;
-    font-weight: 800;
-}
+        .badge {
+            display: inline-block;
+            padding: 7px 13px;
+            border-radius: 999px;
+            background: #fff3a6;
+            color: #7a285d;
+            border: 2px solid white;
+            font-size: .82rem;
+            font-weight: 800;
+        }
 
-.card {
-    padding: 21px;
-    border-radius: 23px;
-    background: rgba(255,255,255,.92);
-    border: 2px solid #ffb4d9;
-    box-shadow: 0 10px 30px rgba(236,72,153,.13);
-    color: #3b1838;
-}
+        .card {
+            padding: 21px;
+            border-radius: 23px;
+            background: rgba(255,255,255,.92);
+            border: 2px solid #ffb4d9;
+            box-shadow: 0 10px 30px rgba(236,72,153,.13);
+            color: #3b1838;
+        }
 
-.metric {
-    padding: 18px;
-    border-radius: 19px;
-    background: linear-gradient(
-        135deg,
-        #fff 0%,
-        #ffe0f1 48%,
-        #e0faff 100%
-    );
-    border: 2px solid #ff9dce;
-    box-shadow: 0 8px 22px rgba(236,72,153,.10);
-}
+        .metric {
+            padding: 18px;
+            border-radius: 19px;
+            background:
+                linear-gradient(
+                    135deg,
+                    #fff 0%,
+                    #ffe0f1 48%,
+                    #e0faff 100%
+                );
+            border: 2px solid #ff9dce;
+            box-shadow: 0 8px 22px rgba(236,72,153,.10);
+        }
 
-.metric .label {
-    color: #8b4776;
-    font-size: .82rem;
-}
+        .metric .label {
+            color: #8b4776;
+            font-size: .82rem;
+        }
 
-.metric .value {
-    font-size: 1.7rem;
-    font-weight: 700;
-    margin-top: 4px;
-    color: #d92d86;
-}
+        .metric .value {
+            font-size: 1.7rem;
+            font-weight: 700;
+            margin-top: 4px;
+            color: #d92d86;
+        }
 
-.section-title {
-    font-family: 'Space Grotesk', sans-serif;
-    font-size: 1.45rem;
-    font-weight: 700;
-    margin: 25px 0 12px;
-    color: #d42b87;
-}
+        .section-title {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 1.45rem;
+            font-weight: 700;
+            margin: 25px 0 12px;
+            color: #d42b87;
+        }
 
-.stButton > button {
-    border-radius: 15px !important;
-    border: 0 !important;
-    font-weight: 800 !important;
-    background: linear-gradient(
-        90deg,
-        #ff3f9f,
-        #9b5cff,
-        #00cfe8,
-        #ffc928
-    ) !important;
-    color: white !important;
-    box-shadow: 0 7px 20px rgba(236,72,153,.25);
-}
+        .stButton > button {
+            border-radius: 15px !important;
+            border: 0 !important;
+            font-weight: 800 !important;
+            background:
+                linear-gradient(
+                    90deg,
+                    #ff3f9f,
+                    #9b5cff,
+                    #00cfe8,
+                    #ffc928
+                ) !important;
+            color: white !important;
+            box-shadow: 0 7px 20px rgba(236,72,153,.25);
+        }
 
-div[data-testid="stFileUploader"] {
-    background: linear-gradient(
-        135deg,
-        #fff0f8,
-        #e9faff,
-        #fff7d1
-    );
-    border: 2px dashed #ff63ad;
-    border-radius: 20px;
-    padding: 12px;
-}
+        div[data-testid="stFileUploader"] {
+            background:
+                linear-gradient(
+                    135deg,
+                    #fff0f8,
+                    #e9faff,
+                    #fff7d1
+                );
+            border: 2px dashed #ff63ad;
+            border-radius: 20px;
+            padding: 12px;
+        }
 
-div[data-testid="stFileUploader"] section {
-    background: transparent !important;
-}
+        div[data-testid="stFileUploader"] section {
+            background: transparent !important;
+        }
 
-.stRadio label,
-.stSelectbox label,
-.stSlider label {
-    color: #6d2858 !important;
-    font-weight: 700 !important;
-}
+        .stRadio label,
+        .stSelectbox label,
+        .stSlider label {
+            color: #6d2858 !important;
+            font-weight: 700 !important;
+        }
 
-.stAlert {
-    border-radius: 16px !important;
-}
+        .stAlert {
+            border-radius: 16px !important;
+        }
 
-[data-testid="stMetric"] {
-    background: linear-gradient(135deg, #fff, #ffe4f3);
-    border: 2px solid #ffacd5;
-    padding: 12px;
-    border-radius: 18px;
-}
+        [data-testid="stMetric"] {
+            background:
+                linear-gradient(
+                    135deg,
+                    #fff,
+                    #ffe4f3
+                );
+            border: 2px solid #ffacd5;
+            padding: 12px;
+            border-radius: 18px;
+        }
 
-.small {
-    color: #7e5271;
-    font-size: .86rem;
-}
+        .small {
+            color: #7e5271;
+            font-size: .86rem;
+        }
 
-footer {
-    visibility: hidden;
-}
+        footer {
+            visibility: hidden;
+        }
 
-header[data-testid="stHeader"] {
-    background: transparent !important;
-}
+        header[data-testid="stHeader"] {
+            background: transparent !important;
+        }
 
-header[data-testid="stHeader"] * {
-    color: #7a285d !important;
-}
+        header[data-testid="stHeader"] * {
+            color: #7a285d !important;
+        }
 
-[data-testid="stAppViewContainer"] {
-    background: transparent !important;
-}
+        [data-testid="stAppViewContainer"] {
+            background: transparent !important;
+        }
 
-[data-testid="stSidebar"] * {
-    color: #5b1745 !important;
-}
+        [data-testid="stSidebar"] * {
+            color: #5b1745 !important;
+        }
 
-section[data-testid="stSidebar"] p,
-section[data-testid="stSidebar"] label,
-section[data-testid="stSidebar"] span,
-section[data-testid="stSidebar"] div {
-    color: #5b1745 !important;
-}
+        section[data-testid="stSidebar"] p,
+        section[data-testid="stSidebar"] label,
+        section[data-testid="stSidebar"] span,
+        section[data-testid="stSidebar"] div {
+            color: #5b1745 !important;
+        }
 
-section[data-testid="stSidebar"] .stCaption,
-section[data-testid="stSidebar"] small {
-    color: #7a3b67 !important;
-}
+        section[data-testid="stSidebar"] .stCaption,
+        section[data-testid="stSidebar"] small {
+            color: #7a3b67 !important;
+        }
 
-section[data-testid="stSidebar"] [role="radiogroup"] label {
-    background: rgba(255,255,255,.58) !important;
-    border: 2px solid rgba(255,92,172,.28) !important;
-    border-radius: 12px !important;
-    padding: 7px 10px !important;
-    margin: 4px 0 !important;
-}
+        section[data-testid="stSidebar"] [role="radiogroup"] label {
+            background: rgba(255,255,255,.58) !important;
+            border: 2px solid rgba(255,92,172,.28) !important;
+            border-radius: 12px !important;
+            padding: 7px 10px !important;
+            margin: 4px 0 !important;
+        }
 
-section[data-testid="stSidebar"] [role="radiogroup"] label:hover {
-    background: #ffd2e9 !important;
-}
+        section[data-testid="stSidebar"] [role="radiogroup"] label:hover {
+            background: #ffd2e9 !important;
+        }
 
-section[data-testid="stSidebar"] [data-baseweb="select"] > div {
-    background: rgba(255,255,255,.82) !important;
-    color: #5b1745 !important;
-    border: 2px solid #ff9dce !important;
-}
+        section[data-testid="stSidebar"] [data-baseweb="select"] > div {
+            background: rgba(255,255,255,.82) !important;
+            color: #5b1745 !important;
+            border: 2px solid #ff9dce !important;
+        }
 
-section[data-testid="stSidebar"] [data-baseweb="slider"] {
-    color: #ff3f9f !important;
-}
+        section[data-testid="stSidebar"] [data-baseweb="slider"] {
+            color: #ff3f9f !important;
+        }
 
-section[data-testid="stSidebar"] hr {
-    border-color: rgba(255,63,159,.30) !important;
-}
+        section[data-testid="stSidebar"] hr {
+            border-color: rgba(255,63,159,.30) !important;
+        }
 
-[data-testid="stDecoration"] {
-    background: linear-gradient(
-        90deg,
-        #ff4fa3,
-        #9b5cff,
-        #20c9e8,
-        #ffd43b
-    ) !important;
-    height: 4px !important;
-}
-</style>
-""",
+        [data-testid="stDecoration"] {
+            background:
+                linear-gradient(
+                    90deg,
+                    #ff4fa3,
+                    #9b5cff,
+                    #20c9e8,
+                    #ffd43b
+                ) !important;
+            height: 4px !important;
+        }
+        </style>
+        """
+    ),
     unsafe_allow_html=True,
 )
 
@@ -292,7 +318,7 @@ DEFAULT_MODEL = "yolo11n.pt"
 
 
 @st.cache_resource(show_spinner="Loading the computer-vision model…")
-def load_model(model_name: str):
+def load_model(model_name):
     return YOLO(model_name)
 
 
@@ -320,7 +346,7 @@ def result_stats(result):
             for cls in result.boxes.cls.tolist():
                 name = result.names.get(
                     int(cls),
-                    str(int(cls))
+                    str(int(cls)),
                 )
                 classes[name] = classes.get(name, 0) + 1
 
@@ -339,14 +365,29 @@ def result_stats(result):
 
 with st.sidebar:
 
-    st.markdown(
-        '<div style="font-size:1.65rem;font-weight:800;color:#d42b87 !important;margin-bottom:2px;">👁️ VisionFlow</div>',
-        unsafe_allow_html=True,
+    html(
+        """
+        <div style="
+            font-size:1.65rem;
+            font-weight:800;
+            color:#d42b87 !important;
+            margin-bottom:2px;
+        ">
+            👁️ VisionFlow
+        </div>
+        """
     )
 
-    st.markdown(
-        '<div style="color:#7a3b67 !important;font-weight:600;font-size:.86rem;">Object Detection + Multi-Object Tracking</div>',
-        unsafe_allow_html=True,
+    html(
+        """
+        <div style="
+            color:#7a3b67 !important;
+            font-weight:600;
+            font-size:.86rem;
+        ">
+            Object Detection + Multi-Object Tracking
+        </div>
+        """
     )
 
     st.divider()
@@ -410,28 +451,26 @@ with st.sidebar:
 
 if page == "🏠 Command Center":
 
-    # IMPORTANT:
-    # HTML is intentionally written without leading indentation
-    # so Streamlit does NOT display it as a code block.
-
-    hero_html = (
-        '<div class="hero">'
-        '<span class="badge">REAL-TIME COMPUTER VISION</span>'
-        '<h1>VisionFlow</h1>'
-        '<p>A polished real-time computer-vision workspace '
-        'for detecting, tracking and counting objects '
-        'with persistent IDs.</p>'
-        '</div>'
+    html(
+        """
+        <div class="hero">
+            <span class="badge">REAL-TIME COMPUTER VISION</span>
+            <h1>VisionFlow</h1>
+            <p>
+                A polished real-time computer-vision workspace
+                for detecting, tracking and counting objects
+                with persistent IDs.
+            </p>
+        </div>
+        """
     )
 
-    st.markdown(
-        hero_html,
-        unsafe_allow_html=True,
-    )
-
-    st.markdown(
-        '<div class="section-title">What this application does</div>',
-        unsafe_allow_html=True,
+    html(
+        """
+        <div class="section-title">
+            What this application does
+        </div>
+        """
     )
 
     c1, c2, c3, c4 = st.columns(4)
@@ -467,55 +506,84 @@ if page == "🏠 Command Center":
         ),
     ]
 
-    for col, (icon, title, description, accent, bg) in zip(
+    for col, (
+        icon,
+        title,
+        description,
+        accent,
+        bg,
+    ) in zip(
         [c1, c2, c3, c4],
         cards,
     ):
 
         with col:
 
-            card_html = (
-                f'<div style="padding:20px;'
-                f'border-radius:23px;'
-                f'background:linear-gradient(135deg,{bg},#ffffff);'
-                f'border:3px solid {accent};'
-                f'box-shadow:0 10px 25px rgba(0,0,0,.08);'
-                f'min-height:220px;">'
-                f'<div style="font-size:2rem">{icon}</div>'
-                f'<h3 style="margin:7px 0;color:{accent}">{title}</h3>'
-                f'<div style="color:#633b58">{description}</div>'
-                f'</div>'
+            html(
+                f"""
+                <div style="
+                    padding:20px;
+                    border-radius:23px;
+                    background:
+                        linear-gradient(
+                            135deg,
+                            {bg},
+                            #ffffff
+                        );
+                    border:3px solid {accent};
+                    box-shadow:0 10px 25px rgba(0,0,0,.08);
+                    min-height:220px;
+                ">
+                    <div style="font-size:2rem;">
+                        {icon}
+                    </div>
+
+                    <h3 style="
+                        margin:7px 0;
+                        color:{accent};
+                    ">
+                        {title}
+                    </h3>
+
+                    <div style="color:#633b58;">
+                        {description}
+                    </div>
+                </div>
+                """
             )
 
-            st.markdown(
-                card_html,
-                unsafe_allow_html=True,
-            )
-
-    st.markdown(
-        '<div class="section-title">Recommended demo flow</div>',
-        unsafe_allow_html=True,
+    html(
+        """
+        <div class="section-title">
+            Recommended demo flow
+        </div>
+        """
     )
 
-    demo_html = (
-        '<div class="card">'
-        '<b>1.</b> Open <b>Video Lab</b> and upload a traffic / people / street video.<br><br>'
-        '<b>2.</b> Keep confidence around <b>0.35</b> and select <b>ByteTrack</b> for a clean demo.<br><br>'
-        '<b>3.</b> Start processing and show the detected video with '
-        '<b>Track IDs</b> moving frame-by-frame.<br><br>'
-        '<b>4.</b> Open <b>Analytics</b> to explain detection counts '
-        'and class distribution to the evaluator.'
-        '</div>'
-    )
+    html(
+        """
+        <div class="card">
+            <b>1.</b> Open <b>Video Lab</b> and upload
+            a traffic / people / street video.
+            <br><br>
 
-    st.markdown(
-        demo_html,
-        unsafe_allow_html=True,
+            <b>2.</b> Keep confidence around <b>0.35</b>
+            and select <b>ByteTrack</b>.
+            <br><br>
+
+            <b>3.</b> Start processing and show the
+            detected video with <b>Track IDs</b>.
+            <br><br>
+
+            <b>4.</b> Open <b>Analytics</b> to explain
+            detection counts and class distribution.
+        </div>
+        """
     )
 
     st.info(
-        "Tip: For the strongest demo, use a video containing multiple "
-        "moving people/cars so the persistent IDs are clearly visible."
+        "Tip: Use a video containing multiple moving "
+        "people or cars so persistent IDs are clearly visible."
     )
 
 
@@ -525,27 +593,25 @@ if page == "🏠 Command Center":
 
 elif page == "🎥 Live Detection":
 
-    hero_html = (
-        '<div class="hero">'
-        '<span class="badge">LIVE CAMERA</span>'
-        '<h1>Live Detection</h1>'
-        '<p>Real-time webcam detection and multi-object tracking.</p>'
-        '</div>'
-    )
-
-    st.markdown(
-        hero_html,
-        unsafe_allow_html=True,
+    html(
+        """
+        <div class="hero">
+            <span class="badge">LIVE CAMERA</span>
+            <h1>Live Detection</h1>
+            <p>
+                Real-time webcam detection and
+                multi-object tracking.
+            </p>
+        </div>
+        """
     )
 
     if not WEBRTC_AVAILABLE:
 
         st.error(
-            "Webcam mode needs streamlit-webrtc. "
-            "Install the requirements from requirements.txt and restart the app."
+            "Webcam mode needs streamlit-webrtc "
+            "and av."
         )
-
-        st.code("pip install -r requirements.txt")
 
     else:
 
@@ -556,15 +622,15 @@ elif page == "🎥 Live Detection":
             "Detection and tracking run on incoming frames."
         )
 
-        model = load_model(model_choice)
+        model = load_model(
+            model_choice
+        )
 
         class VideoProcessor:
 
             def __init__(self):
                 self.model = model
                 self.frame_count = 0
-                self.last_count = 0
-                self.last_ids = set()
 
             def recv(self, frame):
 
@@ -587,12 +653,6 @@ elif page == "🎥 Live Detection":
                     img,
                     result,
                 )
-
-                (
-                    self.last_count,
-                    _,
-                    self.last_ids,
-                ) = result_stats(result)
 
                 self.frame_count += 1
 
@@ -632,18 +692,17 @@ elif page == "🎥 Live Detection":
 
 elif page == "📹 Video Lab":
 
-    hero_html = (
-        '<div class="hero">'
-        '<span class="badge">VIDEO ANALYSIS</span>'
-        '<h1>Video Lab</h1>'
-        '<p>Upload a video and watch the detected and tracked '
-        'video play frame-by-frame.</p>'
-        '</div>'
-    )
-
-    st.markdown(
-        hero_html,
-        unsafe_allow_html=True,
+    html(
+        """
+        <div class="hero">
+            <span class="badge">VIDEO ANALYSIS</span>
+            <h1>Video Lab</h1>
+            <p>
+                Upload a video and watch the detected
+                and tracked video play frame-by-frame.
+            </p>
+        </div>
+        """
     )
 
     uploaded = st.file_uploader(
@@ -659,14 +718,16 @@ elif page == "📹 Video Lab":
 
     if uploaded:
 
-        input_path = Path("temp_input.mp4")
+        input_path = Path(
+            "temp_input.mp4"
+        )
 
         input_path.write_bytes(
             uploaded.getbuffer()
         )
 
         # ----------------------------------------------------
-        # Read video metadata
+        # READ METADATA
         # ----------------------------------------------------
 
         metadata_cap = cv2.VideoCapture(
@@ -701,12 +762,10 @@ elif page == "📹 Video Lab":
         metadata_cap.release()
 
         # ----------------------------------------------------
-        # Source information
+        # SOURCE METRICS
         # ----------------------------------------------------
 
-        st.markdown(
-            "### Source"
-        )
+        st.markdown("### Source")
 
         m1, m2, m3, m4 = st.columns(4)
 
@@ -729,9 +788,7 @@ elif page == "📹 Video Lab":
             (
                 m4,
                 "Duration",
-                f"{total / fps:.1f}s"
-                if fps
-                else "—",
+                f"{total / fps:.1f}s",
             ),
         ]
 
@@ -739,25 +796,21 @@ elif page == "📹 Video Lab":
 
             with col:
 
-                metric_html = (
-                    f'<div class="metric">'
-                    f'<div class="label">{label}</div>'
-                    f'<div class="value">{value}</div>'
-                    f'</div>'
+                html(
+                    f"""
+                    <div class="metric">
+                        <div class="label">
+                            {label}
+                        </div>
+
+                        <div class="value">
+                            {value}
+                        </div>
+                    </div>
+                    """
                 )
 
-                st.markdown(
-                    metric_html,
-                    unsafe_allow_html=True,
-                )
-
-        # ----------------------------------------------------
-        # Start processing
-        # ----------------------------------------------------
-
-        st.markdown(
-            "### Processing"
-        )
+        st.markdown("### Processing")
 
         start = st.button(
             "▶ Start detection & tracking",
@@ -770,9 +823,8 @@ elif page == "📹 Video Lab":
             if not WEBRTC_AVAILABLE:
 
                 st.error(
-                    "Video playback requires streamlit-webrtc. "
-                    "Make sure your requirements.txt contains "
-                    "streamlit-webrtc and av."
+                    "streamlit-webrtc and av are required "
+                    "for the processed video player."
                 )
 
             else:
@@ -781,7 +833,7 @@ elif page == "📹 Video Lab":
                     model_choice
                 )
 
-                # Unique ID for every new processing run.
+                # Unique key for every run
                 stream_id = (
                     st.session_state.get(
                         "video_stream_id",
@@ -795,15 +847,15 @@ elif page == "📹 Video Lab":
                 ] = stream_id
 
                 player_key = (
-                    f"visionflow-video-player-{stream_id}"
+                    f"visionflow-player-{stream_id}"
                 )
 
                 source_key = (
-                    f"visionflow-video-source-{stream_id}"
+                    f"visionflow-source-{stream_id}"
                 )
 
                 # ------------------------------------------------
-                # Shared processing state
+                # SHARED STATE
                 # ------------------------------------------------
 
                 state = {
@@ -817,21 +869,11 @@ elif page == "📹 Video Lab":
                     "last_frame": None,
                     "finished": False,
                     "started_at": time.time(),
-                    "fps": fps,
-                    "total": total,
                     "lock": threading.Lock(),
                 }
 
                 # ------------------------------------------------
-                # Video callback
-                #
-                # Every callback:
-                # 1. Reads ONE original frame.
-                # 2. Runs YOLO detection + tracking.
-                # 3. Draws boxes + IDs.
-                # 4. Sends THAT processed frame to the player.
-                #
-                # There is NO separate raw video preview.
+                # PROCESSED VIDEO CALLBACK
                 # ------------------------------------------------
 
                 def video_source_callback(
@@ -844,34 +886,7 @@ elif page == "📹 Video Lab":
                         cap = state["cap"]
 
                         # ----------------------------------------
-                        # End of video
-                        # ----------------------------------------
-
-                        if state["finished"]:
-
-                            if state["last_frame"] is not None:
-
-                                return av.VideoFrame.from_ndarray(
-                                    state["last_frame"],
-                                    format="bgr24",
-                                )
-
-                            blank = np.zeros(
-                                (
-                                    height,
-                                    width,
-                                    3,
-                                ),
-                                dtype=np.uint8,
-                            )
-
-                            return av.VideoFrame.from_ndarray(
-                                blank,
-                                format="bgr24",
-                            )
-
-                        # ----------------------------------------
-                        # Read next frame
+                        # READ ONE FRAME
                         # ----------------------------------------
 
                         ok, frame = cap.read()
@@ -907,10 +922,12 @@ elif page == "📹 Video Lab":
                             )
 
                         # ----------------------------------------
-                        # YOLO detection + tracking
+                        # YOLO DETECTION + TRACKING
                         # ----------------------------------------
 
-                        results = state["model"].track(
+                        results = state[
+                            "model"
+                        ].track(
                             frame,
                             persist=True,
                             conf=conf,
@@ -922,7 +939,7 @@ elif page == "📹 Video Lab":
                         result = results[0]
 
                         # ----------------------------------------
-                        # Draw boxes, labels and tracking IDs
+                        # DRAW DETECTIONS + IDS
                         # ----------------------------------------
 
                         annotated = draw_results(
@@ -931,41 +948,45 @@ elif page == "📹 Video Lab":
                         )
 
                         # ----------------------------------------
-                        # Statistics
+                        # STATISTICS
                         # ----------------------------------------
 
                         (
                             visible_count,
                             classes,
                             ids,
-                        ) = result_stats(result)
+                        ) = result_stats(
+                            result
+                        )
 
                         for class_name, value in classes.items():
 
-                            state["class_totals"][
-                                class_name
-                            ] = (
-                                state["class_totals"].get(
+                            state[
+                                "class_totals"
+                            ][class_name] = (
+                                state[
+                                    "class_totals"
+                                ].get(
                                     class_name,
                                     0,
                                 )
                                 + value
                             )
 
-                        state["unique_ids"].update(
-                            ids
-                        )
+                        state[
+                            "unique_ids"
+                        ].update(ids)
 
-                        state["processed"] += 1
+                        state[
+                            "processed"
+                        ] += 1
 
-                        state["last_frame"] = (
-                            annotated.copy()
-                        )
+                        state[
+                            "last_frame"
+                        ] = annotated.copy()
 
                         # ----------------------------------------
-                        # IMPORTANT:
-                        # Return the DETECTED frame,
-                        # not the original frame.
+                        # SEND PROCESSED FRAME TO VIDEO PLAYER
                         # ----------------------------------------
 
                         return av.VideoFrame.from_ndarray(
@@ -974,7 +995,7 @@ elif page == "📹 Video Lab":
                         )
 
                 # ------------------------------------------------
-                # Create WebRTC video source
+                # CREATE VIDEO SOURCE
                 # ------------------------------------------------
 
                 video_source_track = (
@@ -985,32 +1006,27 @@ elif page == "📹 Video Lab":
                     )
                 )
 
-                # Keep reference so the callback / stop handler
-                # can stop the source safely.
                 source_holder = {
                     "track": video_source_track
                 }
 
                 # ------------------------------------------------
-                # Stop callback
-                #
-                # IMPORTANT:
-                # Do NOT stop during WebRTC signalling.
-                # Otherwise the video can appear stuck before
-                # playback even starts.
+                # SAFE STOP HANDLER
                 # ------------------------------------------------
 
                 def on_change():
 
-                    ctx = st.session_state.get(
-                        player_key
-                    )
-
-                    if ctx is None:
-                        return
-
                     try:
 
+                        ctx = st.session_state.get(
+                            player_key
+                        )
+
+                        if ctx is None:
+                            return
+
+                        # Do NOT stop while WebRTC
+                        # is still signalling.
                         stopped = (
                             not ctx.state.playing
                             and not ctx.state.signalling
@@ -1024,7 +1040,9 @@ elif page == "📹 Video Lab":
 
                             with state["lock"]:
 
-                                state["finished"] = True
+                                state[
+                                    "finished"
+                                ] = True
 
                                 try:
                                     state[
@@ -1037,7 +1055,7 @@ elif page == "📹 Video Lab":
                         pass
 
                 # ------------------------------------------------
-                # WebRTC configuration
+                # WEBRTC
                 # ------------------------------------------------
 
                 rtc_config = RTCConfiguration(
@@ -1052,18 +1070,14 @@ elif page == "📹 Video Lab":
                     }
                 )
 
-                # ------------------------------------------------
-                # PLAY THE PROCESSED VIDEO
-                # ------------------------------------------------
-
                 st.markdown(
                     "### ▶ Detected & Tracked Video"
                 )
 
                 st.caption(
-                    "This player shows the processed video directly. "
-                    "Each frame is passed through YOLO detection and "
-                    "tracking before it reaches the player."
+                    "The player below contains the processed "
+                    "video. Every frame goes through YOLO "
+                    "detection and tracking before playback."
                 )
 
                 webrtc_streamer(
@@ -1080,10 +1094,12 @@ elif page == "📹 Video Lab":
                 )
 
                 # ------------------------------------------------
-                # Current processing information
+                # STATUS
                 # ------------------------------------------------
 
-                processed = state["processed"]
+                processed = state[
+                    "processed"
+                ]
 
                 if total > 0:
 
@@ -1106,28 +1122,32 @@ elif page == "📹 Video Lab":
                     processed / elapsed
                 )
 
-                status_html = (
-                    f'<div class="card" style="margin-top:15px;">'
-                    f'<b>Processed frames:</b> {processed:,} / {total:,}<br>'
-                    f'<b>Processing speed:</b> {processing_fps:.1f} FPS<br>'
-                    f'<b>Unique Track IDs:</b> {len(state["unique_ids"])}'
-                    f'</div>'
-                )
+                html(
+                    f"""
+                    <div class="card">
+                        <b>Processed frames:</b>
+                        {processed:,} / {total:,}
+                        <br>
 
-                st.markdown(
-                    status_html,
-                    unsafe_allow_html=True,
+                        <b>Processing speed:</b>
+                        {processing_fps:.1f} FPS
+                        <br>
+
+                        <b>Unique Track IDs:</b>
+                        {len(state["unique_ids"])}
+                    </div>
+                    """
                 )
 
                 # ------------------------------------------------
-                # Save analytics when processing finishes
+                # ANALYTICS
                 # ------------------------------------------------
 
                 if state["finished"]:
 
                     st.success(
-                        f"Completed. Processed {processed:,} "
-                        f"frames with "
+                        f"Completed. Processed "
+                        f"{processed:,} frames with "
                         f"{len(state['unique_ids'])} "
                         f"unique track IDs."
                     )
@@ -1147,19 +1167,18 @@ elif page == "📹 Video Lab":
 
     else:
 
-        empty_html = (
-            '<div class="card">'
-            '<b>Supported:</b> MP4, AVI, MOV, MKV and WEBM.'
-            '<br>'
-            '<span class="small">'
-            'For the demo, choose a clip with several moving objects.'
-            '</span>'
-            '</div>'
-        )
-
-        st.markdown(
-            empty_html,
-            unsafe_allow_html=True,
+        html(
+            """
+            <div class="card">
+                <b>Supported:</b>
+                MP4, AVI, MOV, MKV and WEBM.
+                <br>
+                <span class="small">
+                    For the demo, choose a clip with
+                    several moving objects.
+                </span>
+            </div>
+            """
         )
 
 
@@ -1169,17 +1188,17 @@ elif page == "📹 Video Lab":
 
 elif page == "🖼️ Image Inspector":
 
-    hero_html = (
-        '<div class="hero">'
-        '<span class="badge">SINGLE FRAME</span>'
-        '<h1>Image Inspector</h1>'
-        '<p>Quickly validate the detector before running a full video.</p>'
-        '</div>'
-    )
-
-    st.markdown(
-        hero_html,
-        unsafe_allow_html=True,
+    html(
+        """
+        <div class="hero">
+            <span class="badge">SINGLE FRAME</span>
+            <h1>Image Inspector</h1>
+            <p>
+                Quickly validate the detector
+                before running a full video.
+            </p>
+        </div>
+        """
     )
 
     image_file = st.file_uploader(
@@ -1270,17 +1289,17 @@ elif page == "🖼️ Image Inspector":
 
 elif page == "📊 Analytics":
 
-    hero_html = (
-        '<div class="hero">'
-        '<span class="badge">INSIGHTS</span>'
-        '<h1>Analytics</h1>'
-        '<p>Turn the detection stream into a clean story for your internship demo.</p>'
-        '</div>'
-    )
-
-    st.markdown(
-        hero_html,
-        unsafe_allow_html=True,
+    html(
+        """
+        <div class="hero">
+            <span class="badge">INSIGHTS</span>
+            <h1>Analytics</h1>
+            <p>
+                Turn the detection stream into a
+                clean story for your internship demo.
+            </p>
+        </div>
+        """
     )
 
     data = st.session_state.get(
@@ -1349,7 +1368,8 @@ elif page == "📊 Analytics":
         else:
 
             st.info(
-                "No object classes were detected in the last run."
+                "No object classes were detected "
+                "in the last run."
             )
 
 
@@ -1359,33 +1379,52 @@ elif page == "📊 Analytics":
 
 else:
 
-    hero_html = (
-        '<div class="hero">'
-        '<span class="badge">PROJECT DETAILS</span>'
-        '<h1>About VisionFlow</h1>'
-        '<p>A real-time computer-vision workspace for detection, tracking and analytics.</p>'
-        '</div>'
+    html(
+        """
+        <div class="hero">
+            <span class="badge">PROJECT DETAILS</span>
+            <h1>About VisionFlow</h1>
+            <p>
+                A real-time computer-vision workspace
+                for detection, tracking and analytics.
+            </p>
+        </div>
+        """
     )
 
-    st.markdown(
-        hero_html,
-        unsafe_allow_html=True,
-    )
+    html(
+        """
+        <div class="card">
+            <h3>Technology stack</h3>
 
-    about_html = (
-        '<div class="card">'
-        '<h3>Technology stack</h3>'
-        '<ul>'
-        '<li><b>Python + Streamlit</b> — web application UI</li>'
-        '<li><b>OpenCV</b> — video capture and frame processing</li>'
-        '<li><b>Ultralytics YOLO</b> — pretrained real-time object detector</li>'
-        '<li><b>ByteTrack / BoT-SORT</b> — multi-object tracking with persistent IDs</li>'
-        '<li><b>streamlit-webrtc</b> — browser webcam and processed video streaming</li>'
-        '</ul>'
-        '</div>'
-    )
+            <ul>
+                <li>
+                    <b>Python + Streamlit</b>
+                    — web application UI
+                </li>
 
-    st.markdown(
-        about_html,
-        unsafe_allow_html=True,
+                <li>
+                    <b>OpenCV</b>
+                    — video capture and frame processing
+                </li>
+
+                <li>
+                    <b>Ultralytics YOLO</b>
+                    — pretrained real-time object detector
+                </li>
+
+                <li>
+                    <b>ByteTrack / BoT-SORT</b>
+                    — multi-object tracking
+                    with persistent IDs
+                </li>
+
+                <li>
+                    <b>streamlit-webrtc</b>
+                    — browser webcam and processed
+                    video streaming
+                </li>
+            </ul>
+        </div>
+        """
     )
