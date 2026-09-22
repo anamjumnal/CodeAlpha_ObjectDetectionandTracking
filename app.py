@@ -161,25 +161,31 @@ footer { visibility:hidden; }
 header[data-testid="stHeader"] {
     background: transparent !important;
 }
+
 header[data-testid="stHeader"] * {
     color: #7a285d !important;
 }
+
 [data-testid="stAppViewContainer"] {
     background: transparent !important;
 }
+
 [data-testid="stSidebar"] * {
     color: #5b1745 !important;
 }
+
 section[data-testid="stSidebar"] p,
 section[data-testid="stSidebar"] label,
 section[data-testid="stSidebar"] span,
 section[data-testid="stSidebar"] div {
     color: #5b1745 !important;
 }
+
 section[data-testid="stSidebar"] .stCaption,
 section[data-testid="stSidebar"] small {
     color: #7a3b67 !important;
 }
+
 section[data-testid="stSidebar"] [role="radiogroup"] label {
     background: rgba(255,255,255,.58) !important;
     border: 2px solid rgba(255,92,172,.28) !important;
@@ -187,123 +193,29 @@ section[data-testid="stSidebar"] [role="radiogroup"] label {
     padding: 7px 10px !important;
     margin: 4px 0 !important;
 }
+
 section[data-testid="stSidebar"] [role="radiogroup"] label:hover {
     background: #ffd2e9 !important;
 }
+
 section[data-testid="stSidebar"] [data-baseweb="select"] > div {
     background: rgba(255,255,255,.82) !important;
     color: #5b1745 !important;
     border: 2px solid #ff9dce !important;
 }
+
 section[data-testid="stSidebar"] [data-baseweb="slider"] {
     color: #ff3f9f !important;
 }
+
 section[data-testid="stSidebar"] hr {
     border-color: rgba(255,63,159,.30) !important;
 }
-/* Force Streamlit chrome and sidebar controls to stay bright/readable */
-header[data-testid="stHeader"],
-[data-testid="stToolbar"],
-[data-testid="stStatusWidget"],
-[data-testid="stDecoration"] {
-    background: transparent !important;
-    background-color: transparent !important;
-}
+
+/* Streamlit's top chrome should never become a black strip */
 [data-testid="stDecoration"] {
     background: linear-gradient(90deg,#ff4fa3,#9b5cff,#20c9e8,#ffd43b) !important;
     height: 4px !important;
-}
-[data-testid="stToolbar"] button,
-[data-testid="stToolbar"] button * {
-    color: #7a285d !important;
-}
-
-/* Sidebar model + tracker selectboxes: white/pink, never black */
-section[data-testid="stSidebar"] [data-testid="stSelectbox"] [data-baseweb="select"] > div {
-    background: #ffffff !important;
-    background-color: #ffffff !important;
-    color: #5b1745 !important;
-    border: 2px solid #ff9dce !important;
-    border-radius: 12px !important;
-}
-section[data-testid="stSidebar"] [data-testid="stSelectbox"] [data-baseweb="select"] span {
-    color: #5b1745 !important;
-    background: transparent !important;
-}
-section[data-testid="stSidebar"] [data-testid="stSelectbox"] [data-baseweb="select"] svg {
-    fill: #d42b87 !important;
-    color: #d42b87 !important;
-}
-
-/* Dropdown popup */
-div[data-baseweb="popover"],
-div[data-baseweb="popover"] > div,
-div[data-baseweb="menu"] {
-    background: #ffffff !important;
-    background-color: #ffffff !important;
-}
-div[data-baseweb="menu"] li,
-div[data-baseweb="menu"] li * {
-    color: #5b1745 !important;
-    background: #ffffff !important;
-}
-div[data-baseweb="menu"] li:hover,
-div[data-baseweb="menu"] li:hover * {
-    background: #ffd2e9 !important;
-    color: #7a285d !important;
-}
-
-/* Sidebar slider */
-section[data-testid="stSidebar"] [data-baseweb="slider"] [role="slider"] {
-    background: #d42b87 !important;
-    border-color: #d42b87 !important;
-}
-section[data-testid="stSidebar"] [data-baseweb="slider"] > div > div {
-    background: #ff9dce !important;
-}
-
-
-/* Cloud-safe light widget rendering */
-[data-testid="stToolbar"],
-[data-testid="stStatusWidget"],
-header[data-testid="stHeader"] {
-    background: transparent !important;
-}
-
-section[data-testid="stSidebar"] [data-baseweb="select"] > div,
-section[data-testid="stSidebar"] [data-testid="stSelectbox"] [data-baseweb="select"] > div {
-    background: #ffffff !important;
-    color: #5b1745 !important;
-    border: 2px solid #ff8bc4 !important;
-    box-shadow: none !important;
-}
-
-section[data-testid="stSidebar"] [data-baseweb="select"] span,
-section[data-testid="stSidebar"] [data-testid="stSelectbox"] [data-baseweb="select"] span {
-    color: #5b1745 !important;
-}
-
-section[data-testid="stSidebar"] [data-baseweb="select"] svg {
-    fill: #d42b87 !important;
-}
-
-div[data-baseweb="popover"],
-div[data-baseweb="popover"] > div,
-div[data-baseweb="menu"] {
-    background: #ffffff !important;
-    color: #5b1745 !important;
-}
-
-div[data-baseweb="menu"] li,
-div[data-baseweb="menu"] li * {
-    background: #ffffff !important;
-    color: #5b1745 !important;
-}
-
-div[data-baseweb="menu"] li:hover,
-div[data-baseweb="menu"] li:hover * {
-    background: #ffd2e9 !important;
-    color: #5b1745 !important;
 }
 
 </style>
@@ -331,33 +243,79 @@ def result_stats(result):
     count = 0
     classes = {}
     ids = set()
+
     if result.boxes is not None:
         count = len(result.boxes)
+
         for cls in result.boxes.cls.tolist() if result.boxes.cls is not None else []:
             name = result.names.get(int(cls), str(int(cls)))
             classes[name] = classes.get(name, 0) + 1
+
         if result.boxes.id is not None:
             ids = {int(x) for x in result.boxes.id.tolist()}
+
     return count, classes, ids
 
 # -----------------------------
 # Sidebar
 # -----------------------------
 with st.sidebar:
-    st.markdown('<div style="font-size:1.65rem;font-weight:800;color:#d42b87 !important;margin-bottom:2px;">👁️ VisionFlow</div>', unsafe_allow_html=True)
-    st.markdown('<div style="color:#7a3b67 !important;font-weight:600;font-size:.86rem;">Object Detection + Multi-Object Tracking</div>', unsafe_allow_html=True)
+    st.markdown(
+        '<div style="font-size:1.65rem;font-weight:800;color:#d42b87 !important;margin-bottom:2px;">👁️ VisionFlow</div>',
+        unsafe_allow_html=True
+    )
+
+    st.markdown(
+        '<div style="color:#7a3b67 !important;font-weight:600;font-size:.86rem;">Object Detection + Multi-Object Tracking</div>',
+        unsafe_allow_html=True
+    )
+
     st.divider()
+
     page = st.radio(
         "Navigate",
-        ["🏠 Command Center", "🎥 Live Detection", "📹 Video Lab", "🖼️ Image Inspector", "📊 Analytics", "ℹ️ About"],
+        [
+            "🏠 Command Center",
+            "🎥 Live Detection",
+            "📹 Video Lab",
+            "🖼️ Image Inspector",
+            "📊 Analytics",
+            "ℹ️ About"
+        ],
         label_visibility="collapsed",
     )
+
     st.divider()
+
     st.markdown("### Model")
-    model_choice = st.selectbox("YOLO model", ["yolo11n.pt", "yolo11s.pt"], index=0)
-    conf = st.slider("Confidence threshold", 0.10, 0.95, 0.35, 0.05)
-    iou = st.slider("IoU threshold", 0.10, 0.95, 0.50, 0.05)
-    tracker = st.selectbox("Tracker", ["bytetrack.yaml", "botsort.yaml"])
+
+    model_choice = st.selectbox(
+        "YOLO model",
+        ["yolo11n.pt", "yolo11s.pt"],
+        index=0
+    )
+
+    conf = st.slider(
+        "Confidence threshold",
+        0.10,
+        0.95,
+        0.35,
+        0.05
+    )
+
+    iou = st.slider(
+        "IoU threshold",
+        0.10,
+        0.95,
+        0.50,
+        0.05
+    )
+
+    tracker = st.selectbox(
+        "Tracker",
+        ["bytetrack.yaml", "botsort.yaml"]
+    )
+
     st.divider()
     st.markdown('', unsafe_allow_html=True)
 
@@ -365,6 +323,7 @@ with st.sidebar:
 # Page: Home
 # -----------------------------
 if page == "🏠 Command Center":
+
     st.markdown("""
     <div class="hero">
       <span class="badge">REAL-TIME COMPUTER VISION</span>
@@ -373,25 +332,63 @@ if page == "🏠 Command Center":
     </div>
     """, unsafe_allow_html=True)
 
-    st.markdown('<div class="section-title">What this application does</div>', unsafe_allow_html=True)
+    st.markdown(
+        '<div class="section-title">What this application does</div>',
+        unsafe_allow_html=True
+    )
+
     c1, c2, c3, c4 = st.columns(4)
+
     cards = [
-        ("🎯", "Detect", "Find objects using a pretrained YOLO model.", "#ff4fa3", "#ffd1ea"),
-        ("🧭", "Track", "Assign persistent IDs with ByteTrack / BoT-SORT.", "#7c4dff", "#ddd0ff"),
-        ("🔢", "Count", "Monitor how many objects are visible in each frame.", "#00a9d6", "#c9f7ff"),
-        ("📈", "Analyze", "Inspect classes, confidence and tracking activity.", "#f29b00", "#fff0bd"),
+        (
+            "🎯",
+            "Detect",
+            "Find objects using a pretrained YOLO model.",
+            "#ff4fa3",
+            "#ffd1ea"
+        ),
+        (
+            "🧭",
+            "Track",
+            "Assign persistent IDs with ByteTrack / BoT-SORT.",
+            "#7c4dff",
+            "#ddd0ff"
+        ),
+        (
+            "🔢",
+            "Count",
+            "Monitor how many objects are visible in each frame.",
+            "#00a9d6",
+            "#c9f7ff"
+        ),
+        (
+            "📈",
+            "Analyze",
+            "Inspect classes, confidence and tracking activity.",
+            "#f29b00",
+            "#fff0bd"
+        ),
     ]
-    for col, (icon, title, text, accent, bg) in zip([c1,c2,c3,c4], cards):
+
+    for col, (icon, title, text, accent, bg) in zip(
+        [c1, c2, c3, c4],
+        cards
+    ):
         with col:
             st.markdown(
                 f'<div style="padding:20px;border-radius:23px;background:linear-gradient(135deg,{bg},#ffffff);'
                 f'border:3px solid {accent};box-shadow:0 10px 25px rgba(0,0,0,.08);min-height:145px;">'
-                f'<div style="font-size:2rem">{icon}</div><h3 style="margin:7px 0;color:{accent}">{title}</h3>'
+                f'<div style="font-size:2rem">{icon}</div>'
+                f'<h3 style="margin:7px 0;color:{accent}">{title}</h3>'
                 f'<div style="color:#633b58">{text}</div></div>',
                 unsafe_allow_html=True
             )
 
-    st.markdown('<div class="section-title">Recommended demo flow</div>', unsafe_allow_html=True)
+    st.markdown(
+        '<div class="section-title">Recommended demo flow</div>',
+        unsafe_allow_html=True
+    )
+
     st.markdown("""
     <div class="card">
     <b>1.</b> Open <b>Video Lab</b> and upload a traffic / people / street video.<br><br>
@@ -401,23 +398,42 @@ if page == "🏠 Command Center":
     </div>
     """, unsafe_allow_html=True)
 
-    st.info("Tip: For the strongest demo, use a video containing multiple moving people/cars so the persistent IDs are clearly visible.")
+    st.info(
+        "Tip: For the strongest demo, use a video containing multiple moving objects so the persistent IDs are clearly visible."
+    )
 
 # -----------------------------
 # Page: Live Detection
 # -----------------------------
 elif page == "🎥 Live Detection":
-    st.markdown('<div class="hero"><span class="badge">LIVE CAMERA</span><h1>Live Detection</h1><p>Real-time webcam detection and multi-object tracking.</p></div>', unsafe_allow_html=True)
+
+    st.markdown(
+        '<div class="hero"><span class="badge">LIVE CAMERA</span>'
+        '<h1>Live Detection</h1>'
+        '<p>Real-time webcam detection and multi-object tracking.</p></div>',
+        unsafe_allow_html=True
+    )
 
     if not WEBRTC_AVAILABLE:
-        st.error("Webcam mode needs streamlit-webrtc. Install the requirements from requirements.txt and restart the app.")
+
+        st.error(
+            "Webcam mode needs streamlit-webrtc. Install the requirements from requirements.txt and restart the app."
+        )
+
         st.code("pip install -r requirements.txt")
+
     else:
+
         st.markdown("### Camera stream")
-        st.caption("Allow browser camera permission when prompted. Detection and tracking run on incoming frames.")
+
+        st.caption(
+            "Allow browser camera permission when prompted. Detection and tracking run on incoming frames."
+        )
+
         model = load_model(model_choice)
 
         class VideoProcessor:
+
             def __init__(self):
                 self.model = model
                 self.frame_count = 0
@@ -425,7 +441,9 @@ elif page == "🎥 Live Detection":
                 self.last_ids = set()
 
             def recv(self, frame):
+
                 img = frame.to_ndarray(format="bgr24")
+
                 results = self.model.track(
                     img,
                     persist=True,
@@ -434,19 +452,39 @@ elif page == "🎥 Live Detection":
                     tracker=tracker,
                     verbose=False,
                 )
-                result = results[0]
-                annotated = draw_results(img, result)
-                self.last_count, _, self.last_ids = result_stats(result)
-                self.frame_count += 1
-                return av.VideoFrame.from_ndarray(annotated, format="bgr24")
 
-        rtc_config = RTCConfiguration({"iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]})
+                result = results[0]
+
+                annotated = draw_results(img, result)
+
+                self.last_count, _, self.last_ids = result_stats(result)
+
+                self.frame_count += 1
+
+                return av.VideoFrame.from_ndarray(
+                    annotated,
+                    format="bgr24"
+                )
+
+        rtc_config = RTCConfiguration({
+            "iceServers": [
+                {
+                    "urls": [
+                        "stun:stun.l.google.com:19302"
+                    ]
+                }
+            ]
+        })
+
         webrtc_streamer(
             key="visionflow-live",
             mode=WebRtcMode.SENDRECV,
             rtc_configuration=rtc_config,
             video_processor_factory=VideoProcessor,
-            media_stream_constraints={"video": True, "audio": False},
+            media_stream_constraints={
+                "video": True,
+                "audio": False
+            },
             async_processing=True,
         )
 
@@ -454,34 +492,101 @@ elif page == "🎥 Live Detection":
 # Page: Video Lab
 # -----------------------------
 elif page == "📹 Video Lab":
-    st.markdown('<div class="hero"><span class="badge">VIDEO ANALYSIS</span><h1>Video Lab</h1><p>Upload a video and watch every frame pass through detection + tracking.</p></div>', unsafe_allow_html=True)
 
-    uploaded = st.file_uploader("Upload a video", type=["mp4", "avi", "mov", "mkv", "webm"])
+    st.markdown(
+        '<div class="hero"><span class="badge">VIDEO ANALYSIS</span>'
+        '<h1>Video Lab</h1>'
+        '<p>Upload a video and watch every frame pass through detection + tracking.</p></div>',
+        unsafe_allow_html=True
+    )
+
+    uploaded = st.file_uploader(
+        "Upload a video",
+        type=["mp4", "avi", "mov", "mkv", "webm"]
+    )
+
     if uploaded:
+
+        # -----------------------------
+        # Video preview
+        # -----------------------------
+        video_bytes = uploaded.getvalue()
+
+        st.markdown("### Uploaded Video")
+
+        st.video(video_bytes)
+
+        # Save uploaded video for OpenCV processing
         temp = Path("temp_input.mp4")
-        temp.write_bytes(uploaded.getbuffer())
+        temp.write_bytes(video_bytes)
 
         cap = cv2.VideoCapture(str(temp))
-        total = int(cap.get(cv2.CAP_PROP_FRAME_COUNT)) or 0
-        fps = cap.get(cv2.CAP_PROP_FPS) or 25
-        width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH)) or 640
-        height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT)) or 480
+
+        total = int(
+            cap.get(cv2.CAP_PROP_FRAME_COUNT)
+        ) or 0
+
+        fps = cap.get(
+            cv2.CAP_PROP_FPS
+        ) or 25
+
+        width = int(
+            cap.get(cv2.CAP_PROP_FRAME_WIDTH)
+        ) or 640
+
+        height = int(
+            cap.get(cv2.CAP_PROP_FRAME_HEIGHT)
+        ) or 480
 
         st.markdown("### Source")
-        m1,m2,m3,m4 = st.columns(4)
+
+        m1, m2, m3, m4 = st.columns(4)
+
         for col, label, value in [
-            (m1,"Resolution",f"{width} × {height}"),
-            (m2,"FPS",f"{fps:.1f}"),
-            (m3,"Frames",str(total)),
-            (m4,"Duration",f"{total/fps:.1f}s" if fps else "—"),
+            (
+                m1,
+                "Resolution",
+                f"{width} × {height}"
+            ),
+            (
+                m2,
+                "FPS",
+                f"{fps:.1f}"
+            ),
+            (
+                m3,
+                "Frames",
+                str(total)
+            ),
+            (
+                m4,
+                "Duration",
+                f"{total/fps:.1f}s" if fps else "—"
+            ),
         ]:
+
             with col:
-                st.markdown(f'<div class="metric"><div class="label">{label}</div><div class="value">{value}</div></div>', unsafe_allow_html=True)
+
+                st.markdown(
+                    f'<div class="metric">'
+                    f'<div class="label">{label}</div>'
+                    f'<div class="value">{value}</div>'
+                    f'</div>',
+                    unsafe_allow_html=True
+                )
 
         st.markdown("### Processing")
-        start = st.button("▶ Start detection & tracking", type="primary", width="stretch")
+
+        start = st.button(
+            "▶ Start detection & tracking",
+            type="primary",
+            width="stretch"
+        )
+
         if start:
+
             model = load_model(model_choice)
+
             frame_box = st.empty()
             progress = st.progress(0)
             status = st.empty()
@@ -489,11 +594,15 @@ elif page == "📹 Video Lab":
 
             class_totals = {}
             unique_ids = set()
+
             processed = 0
+
             t0 = time.time()
 
             while True:
+
                 ok, frame = cap.read()
+
                 if not ok:
                     break
 
@@ -505,100 +614,269 @@ elif page == "📹 Video Lab":
                     tracker=tracker,
                     verbose=False,
                 )
-                result = results[0]
-                annotated = draw_results(frame, result)
-                count, classes, ids = result_stats(result)
 
-                for k,v in classes.items():
-                    class_totals[k] = class_totals.get(k, 0) + v
+                result = results[0]
+
+                annotated = draw_results(
+                    frame,
+                    result
+                )
+
+                count, classes, ids = result_stats(
+                    result
+                )
+
+                for k, v in classes.items():
+
+                    class_totals[k] = (
+                        class_totals.get(k, 0) + v
+                    )
+
                 unique_ids.update(ids)
 
-                frame_box.image(cv2.cvtColor(annotated, cv2.COLOR_BGR2RGB), channels="RGB", width="stretch")
+                frame_box.image(
+                    cv2.cvtColor(
+                        annotated,
+                        cv2.COLOR_BGR2RGB
+                    ),
+                    channels="RGB",
+                    use_container_width=True
+                )
+
                 processed += 1
 
-                elapsed = max(time.time() - t0, 0.001)
+                elapsed = max(
+                    time.time() - t0,
+                    0.001
+                )
+
                 speed = processed / elapsed
-                pct = min(processed / total, 1.0) if total else 0
+
+                pct = (
+                    min(processed / total, 1.0)
+                    if total
+                    else 0
+                )
+
                 progress.progress(pct)
-                status.markdown(f"**Frame {processed:,} / {total:,}** · {speed:.1f} FPS · **Visible:** {count} · **Unique IDs:** {len(unique_ids)}")
-                stats_box.json({"visible_objects": count, "active_track_ids": sorted(ids), "class_counts": classes})
+
+                status.markdown(
+                    f"**Frame {processed:,} / {total:,}** · "
+                    f"{speed:.1f} FPS · "
+                    f"**Visible:** {count} · "
+                    f"**Unique IDs:** {len(unique_ids)}"
+                )
+
+                stats_box.json({
+                    "visible_objects": count,
+                    "active_track_ids": sorted(ids),
+                    "class_counts": classes
+                })
 
             cap.release()
-            st.success(f"Completed. Processed {processed:,} frames with {len(unique_ids)} unique track IDs.")
+
+            st.success(
+                f"Completed. Processed {processed:,} frames "
+                f"with {len(unique_ids)} unique track IDs."
+            )
+
             st.session_state["last_analytics"] = {
                 "class_totals": class_totals,
                 "unique_ids": len(unique_ids),
                 "frames": processed,
                 "elapsed": time.time() - t0,
             }
+
     else:
-        st.markdown('<div class="card"><b>Supported:</b> MP4, AVI, MOV, MKV and WEBM.<br><span class="small">For the demo, choose a clip with several moving objects.</span></div>', unsafe_allow_html=True)
+
+        st.markdown(
+            '<div class="card">'
+            '<b>Supported:</b> MP4, AVI, MOV, MKV and WEBM.<br>'
+            '<span class="small">'
+            'For the demo, choose a clip with several moving objects.'
+            '</span></div>',
+            unsafe_allow_html=True
+        )
 
 # -----------------------------
 # Page: Image Inspector
 # -----------------------------
 elif page == "🖼️ Image Inspector":
-    st.markdown('<div class="hero"><span class="badge">SINGLE FRAME</span><h1>Image Inspector</h1><p>Quickly validate the detector before running a full video.</p></div>', unsafe_allow_html=True)
-    image_file = st.file_uploader("Upload an image", type=["jpg","jpeg","png","webp"])
-    if image_file:
-        image = Image.open(image_file).convert("RGB")
-        model = load_model(model_choice)
-        arr = np.array(image)
-        # Image detection uses prediction only (never tracking) and a slightly
-        # lower threshold + larger inference size so small/crowded objects are
-        # easier to detect in high-resolution demo images.
-        image_conf = min(conf, 0.20)
-        result = model.predict(
-            source=arr,
-            conf=image_conf,
-            iou=iou,
-            imgsz=1280,
-            verbose=False,
-        )[0]
-        annotated = result.plot(conf=True, labels=True, boxes=True)
-        count, classes, ids = result_stats(result)
 
-        a,b = st.columns(2)
+    st.markdown(
+        '<div class="hero"><span class="badge">SINGLE FRAME</span>'
+        '<h1>Image Inspector</h1>'
+        '<p>Quickly validate the detector before running a full video.</p></div>',
+        unsafe_allow_html=True
+    )
+
+    image_file = st.file_uploader(
+        "Upload an image",
+        type=["jpg", "jpeg", "png", "webp"]
+    )
+
+    if image_file:
+
+        image = Image.open(
+            image_file
+        ).convert("RGB")
+
+        model = load_model(
+            model_choice
+        )
+
+        arr = np.array(image)
+
+        result = model(
+            arr,
+            conf=conf,
+            iou=iou,
+            verbose=False
+        )[0]
+
+        annotated = result.plot(
+            conf=True,
+            labels=True,
+            boxes=True
+        )
+
+        count, classes, ids = result_stats(
+            result
+        )
+
+        a, b = st.columns(2)
+
         with a:
-            st.image(image, caption="Original", width="stretch")
+
+            st.image(
+                image,
+                caption="Original",
+                use_container_width=True
+            )
+
         with b:
-            st.image(cv2.cvtColor(annotated, cv2.COLOR_BGR2RGB), caption="Detected objects", width="stretch")
-        x,y,z = st.columns(3)
-        x.metric("Objects", count)
-        y.metric("Classes", len(classes))
-        z.metric("Confidence threshold", f"{image_conf:.2f}")
+
+            st.image(
+                cv2.cvtColor(
+                    annotated,
+                    cv2.COLOR_BGR2RGB
+                ),
+                caption="Detected objects",
+                use_container_width=True
+            )
+
+        x, y, z = st.columns(3)
+
+        x.metric(
+            "Objects",
+            count
+        )
+
+        y.metric(
+            "Classes",
+            len(classes)
+        )
+
+        z.metric(
+            "Confidence threshold",
+            f"{conf:.2f}"
+        )
+
         st.json(classes)
 
 # -----------------------------
 # Page: Analytics
 # -----------------------------
 elif page == "📊 Analytics":
-    st.markdown('<div class="hero"><span class="badge">INSIGHTS</span><h1>Analytics</h1><p>Turn the detection stream into a clean story for your internship demo.</p></div>', unsafe_allow_html=True)
 
-    data = st.session_state.get("last_analytics")
+    st.markdown(
+        '<div class="hero"><span class="badge">INSIGHTS</span>'
+        '<h1>Analytics</h1>'
+        '<p>Turn the detection stream into a clean story for your internship demo.</p></div>',
+        unsafe_allow_html=True
+    )
+
+    data = st.session_state.get(
+        "last_analytics"
+    )
+
     if not data:
-        st.warning("Run a video from Video Lab first. Analytics from the latest run will appear here.")
-    else:
-        a,b,c = st.columns(3)
-        a.metric("Frames processed", f"{data['frames']:,}")
-        b.metric("Unique track IDs", data["unique_ids"])
-        c.metric("Processing time", f"{data['elapsed']:.1f}s")
 
-        st.markdown("### Class activity")
-        items = sorted(data["class_totals"].items(), key=lambda x:x[1], reverse=True)
+        st.warning(
+            "Run a video from Video Lab first. "
+            "Analytics from the latest run will appear here."
+        )
+
+    else:
+
+        a, b, c = st.columns(3)
+
+        a.metric(
+            "Frames processed",
+            f"{data['frames']:,}"
+        )
+
+        b.metric(
+            "Unique track IDs",
+            data["unique_ids"]
+        )
+
+        c.metric(
+            "Processing time",
+            f"{data['elapsed']:.1f}s"
+        )
+
+        st.markdown(
+            "### Class activity"
+        )
+
+        items = sorted(
+            data["class_totals"].items(),
+            key=lambda x: x[1],
+            reverse=True
+        )
+
         if items:
-            names = [x[0] for x in items]
-            vals = [x[1] for x in items]
-            chart_data = {"Object class": names, "Detections across frames": vals}
-            st.bar_chart(chart_data, x="Object class", y="Detections across frames")
+
+            names = [
+                x[0]
+                for x in items
+            ]
+
+            vals = [
+                x[1]
+                for x in items
+            ]
+
+            chart_data = {
+                "Object class": names,
+                "Detections across frames": vals
+            }
+
+            st.bar_chart(
+                chart_data,
+                x="Object class",
+                y="Detections across frames"
+            )
+
         else:
-            st.info("No object classes were detected in the last run.")
+
+            st.info(
+                "No object classes were detected in the last run."
+            )
 
 # -----------------------------
 # Page: About
 # -----------------------------
 else:
-    st.markdown('<div class="hero"><span class="badge">PROJECT DETAILS</span><h1>About VisionFlow</h1><p>A real-time computer-vision workspace for detection, tracking and analytics.</p></div>', unsafe_allow_html=True)
+
+    st.markdown(
+        '<div class="hero"><span class="badge">PROJECT DETAILS</span>'
+        '<h1>About VisionFlow</h1>'
+        '<p>A real-time computer-vision workspace for detection, tracking and analytics.</p></div>',
+        unsafe_allow_html=True
+    )
+
     st.markdown("""
     <div class="card">
     <h3>Technology stack</h3>
@@ -611,4 +889,3 @@ else:
     </ul>
     </div>
     """, unsafe_allow_html=True)
-
