@@ -259,6 +259,7 @@ with st.sidebar:
     conf = st.slider("Confidence threshold", 0.10, 0.95, 0.35, 0.05)
     iou = st.slider("IoU threshold", 0.10, 0.95, 0.50, 0.05)
     tracker = st.selectbox("Tracker", ["bytetrack.yaml", "botsort.yaml"])
+    frame_skip = st.slider("Process every Nth frame", 1, 5, 2, 1, help="Higher = faster but less frequent detection updates.")
     st.divider()
     st.markdown('', unsafe_allow_html=True)
 
@@ -324,21 +325,28 @@ elif page == "🎥 Live Detection":
                 self.frame_count = 0
                 self.last_count = 0
                 self.last_ids = set()
+                self.last_annotated = None
 
             def recv(self, frame):
                 img = frame.to_ndarray(format="bgr24")
-                results = self.model.track(
-                    img,
-                    persist=True,
-                    conf=conf,
-                    iou=iou,
-                    tracker=tracker,
-                    imgsz=320,
-                    verbose=False,
-                )
-                result = results[0]
-                annotated = draw_results(img, result)
-                self.last_count, _, self.last_ids = result_stats(result)
+
+                if self.frame_count % frame_skip == 0 or self.last_annotated is None:
+                    results = self.model.track(
+                        img,
+                        persist=True,
+                        conf=conf,
+                        iou=iou,
+                        tracker=tracker,
+                        imgsz=320,
+                        verbose=False,
+                    )
+                    result = results[0]
+                    annotated = draw_results(img, result)
+                    self.last_count, _, self.last_ids = result_stats(result)
+                    self.last_annotated = annotated
+                else:
+                    annotated = self.last_annotated
+
                 self.frame_count += 1
                 return av.VideoFrame.from_ndarray(annotated, format="bgr24")
 
@@ -393,28 +401,35 @@ elif page == "📹 Video Lab":
             unique_ids = set()
             processed = 0
             t0 = time.time()
+            last_annotated = None
+            last_count, last_classes, last_ids = 0, {}, set()
 
             while True:
                 ok, frame = cap.read()
                 if not ok:
                     break
 
-                results = model.track(
-                    frame,
-                    persist=True,
-                    conf=conf,
-                    iou=iou,
-                    tracker=tracker,
-                    imgsz=320,
-                    verbose=False,
-                )
-                result = results[0]
-                annotated = draw_results(frame, result)
-                count, classes, ids = result_stats(result)
+                if processed % frame_skip == 0 or last_annotated is None:
+                    results = model.track(
+                        frame,
+                        persist=True,
+                        conf=conf,
+                        iou=iou,
+                        tracker=tracker,
+                        imgsz=320,
+                        verbose=False,
+                    )
+                    result = results[0]
+                    annotated = draw_results(frame, result)
+                    count, classes, ids = result_stats(result)
 
-                for k,v in classes.items():
-                    class_totals[k] = class_totals.get(k, 0) + v
-                unique_ids.update(ids)
+                    for k,v in classes.items():
+                        class_totals[k] = class_totals.get(k, 0) + v
+                    unique_ids.update(ids)
+
+                    last_annotated, last_count, last_classes, last_ids = annotated, count, classes, ids
+                else:
+                    annotated, count, classes, ids = last_annotated, last_count, last_classes, last_ids
 
                 frame_box.image(cv2.cvtColor(annotated, cv2.COLOR_BGR2RGB), channels="RGB", use_container_width=True)
                 processed += 1
