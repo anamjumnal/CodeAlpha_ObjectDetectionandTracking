@@ -396,8 +396,23 @@ elif page == "📹 Video Lab":
 
             # Process video to file for smooth playback
             output_path = Path("temp_output.mp4")
-            fourcc = cv2.VideoWriter_fourcc(*"mp4v")
-            out = cv2.VideoWriter(str(output_path), fourcc, fps, (width, height))
+            
+            # Try multiple codecs (most systems have at least one)
+            codecs = ["mp4v", "H264", "X264", "MJPG"]
+            out = None
+            for codec in codecs:
+                try:
+                    fourcc = cv2.VideoWriter_fourcc(*codec)
+                    out = cv2.VideoWriter(str(output_path), fourcc, fps, (width, height))
+                    if out.isOpened():
+                        st.caption(f"✓ Using codec: {codec}")
+                        break
+                except:
+                    continue
+            
+            if not out or not out.isOpened():
+                st.error("❌ Could not initialize video writer. Try installing: `pip install opencv-python`")
+                st.stop()
 
             with progress_container:
                 progress_bar = st.progress(0)
@@ -449,8 +464,18 @@ elif page == "📹 Video Lab":
 
             # Display the processed video with smooth playback
             st.markdown("### Result")
-            with open(output_path, "rb") as f:
-                st.video(f.read(), format="video/mp4")
+            
+            # Check if video file was created
+            if output_path.exists() and output_path.stat().st_size > 0:
+                try:
+                    with open(output_path, "rb") as f:
+                        video_data = f.read()
+                    st.video(video_data, format="video/mp4")
+                except Exception as e:
+                    st.error(f"❌ Error displaying video: {str(e)}")
+                    st.info("Try downloading the file manually from the session folder")
+            else:
+                st.error("❌ Video file was not created. Check your codec/ffmpeg installation.")
 
             st.session_state["last_analytics"] = {
                 "class_totals": class_totals,
