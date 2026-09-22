@@ -333,6 +333,7 @@ elif page == "🎥 Live Detection":
                     conf=conf,
                     iou=iou,
                     tracker=tracker,
+                    imgsz=320,
                     verbose=False,
                 )
                 result = results[0]
@@ -404,6 +405,7 @@ elif page == "📹 Video Lab":
                     conf=conf,
                     iou=iou,
                     tracker=tracker,
+                    imgsz=320,
                     verbose=False,
                 )
                 result = results[0]
