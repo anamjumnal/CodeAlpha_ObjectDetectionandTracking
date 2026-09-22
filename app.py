@@ -1,5 +1,6 @@
 import os
 import time
+import threading
 from pathlib import Path
 
 import cv2
@@ -8,11 +9,18 @@ import streamlit as st
 from PIL import Image
 from ultralytics import YOLO
 
-# Optional webcam support
+# WebRTC
 try:
-    from streamlit_webrtc import webrtc_streamer, WebRtcMode, RTCConfiguration
     import av
+    from streamlit_webrtc import (
+        WebRtcMode,
+        RTCConfiguration,
+        create_video_source_track,
+        webrtc_streamer,
+    )
+
     WEBRTC_AVAILABLE = True
+
 except Exception:
     WEBRTC_AVAILABLE = False
 
@@ -30,10 +38,11 @@ st.set_page_config(
 
 
 # =========================================================
-# THEME / UI
+# THEME
 # =========================================================
 
-st.markdown("""
+st.markdown(
+    """
 <style>
 
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap');
@@ -54,7 +63,12 @@ html, body, [class*="css"] {
 
 section[data-testid="stSidebar"] {
     background:
-        linear-gradient(180deg, #ffd1ea 0%, #ffeaf6 42%, #e7ddff 100%);
+        linear-gradient(
+            180deg,
+            #ffd1ea 0%,
+            #ffeaf6 42%,
+            #e7ddff 100%
+        );
     border-right: 2px solid #ff5cac;
 }
 
@@ -76,7 +90,7 @@ section[data-testid="stSidebar"] {
             #ffd43b 100%
         );
     border: 3px solid rgba(255,255,255,.8);
-    box-shadow: 0 18px 50px rgba(236, 72, 153, .25);
+    box-shadow: 0 18px 50px rgba(236,72,153,.25);
     color: white;
 }
 
@@ -213,9 +227,6 @@ footer {
     visibility: hidden;
 }
 
-
-/* Sidebar / top chrome */
-
 header[data-testid="stHeader"] {
     background: transparent !important;
 }
@@ -239,11 +250,6 @@ section[data-testid="stSidebar"] div {
     color: #5b1745 !important;
 }
 
-section[data-testid="stSidebar"] .stCaption,
-section[data-testid="stSidebar"] small {
-    color: #7a3b67 !important;
-}
-
 section[data-testid="stSidebar"] [role="radiogroup"] label {
     background: rgba(255,255,255,.58) !important;
     border: 2px solid rgba(255,92,172,.28) !important;
@@ -260,10 +266,6 @@ section[data-testid="stSidebar"] [data-baseweb="select"] > div {
     background: rgba(255,255,255,.82) !important;
     color: #5b1745 !important;
     border: 2px solid #ff9dce !important;
-}
-
-section[data-testid="stSidebar"] [data-baseweb="slider"] {
-    color: #ff3f9f !important;
 }
 
 section[data-testid="stSidebar"] hr {
@@ -283,7 +285,9 @@ section[data-testid="stSidebar"] hr {
 }
 
 </style>
-""", unsafe_allow_html=True)
+""",
+    unsafe_allow_html=True,
+)
 
 
 # =========================================================
@@ -306,12 +310,11 @@ def load_model(model_name: str):
 # =========================================================
 
 def draw_results(frame, result):
-    annotated = result.plot(
+    return result.plot(
         conf=True,
         labels=True,
         boxes=True
     )
-    return annotated
 
 
 def result_stats(result):
@@ -333,7 +336,9 @@ def result_stats(result):
                     str(int(cls))
                 )
 
-                classes[name] = classes.get(name, 0) + 1
+                classes[name] = (
+                    classes.get(name, 0) + 1
+                )
 
         if result.boxes.id is not None:
 
@@ -353,7 +358,7 @@ with st.sidebar:
 
     st.markdown(
         '<div style="font-size:1.65rem;font-weight:800;'
-        'color:#d42b87 !important;margin-bottom:2px;">'
+        'color:#d42b87 !important;">'
         '👁️ VisionFlow'
         '</div>',
         unsafe_allow_html=True
@@ -428,17 +433,26 @@ with st.sidebar:
 
 if page == "🏠 Command Center":
 
-    st.markdown("""
-    <div class="hero">
-        <span class="badge">REAL-TIME COMPUTER VISION</span>
-        <h1>VisionFlow</h1>
-        <p>
-            A polished real-time computer-vision workspace
-            for detecting, tracking and counting objects
-            with persistent IDs.
-        </p>
-    </div>
-    """, unsafe_allow_html=True)
+    st.markdown(
+        """
+        <div class="hero">
+            <span class="badge">
+                REAL-TIME COMPUTER VISION
+            </span>
+
+            <h1>
+                VisionFlow
+            </h1>
+
+            <p>
+                A polished real-time computer-vision workspace
+                for detecting, tracking and counting objects
+                with persistent IDs.
+            </p>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
 
 
     st.markdown(
@@ -488,9 +502,6 @@ if page == "🏠 Command Center":
 
     ]
 
-
-    # FIXED CARD HTML
-    # No nested indentation that Streamlit can interpret as code.
 
     for col, (
         icon,
@@ -546,39 +557,41 @@ if page == "🏠 Command Center":
     )
 
 
-    st.markdown("""
-    <div class="card">
+    st.markdown(
+        """
+        <div class="card">
 
-    <b>1.</b>
-    Open <b>Video Lab</b> and upload a traffic /
-    people / street video.
+        <b>1.</b>
+        Open <b>Video Lab</b> and upload a traffic /
+        people / street video.
 
-    <br><br>
+        <br><br>
 
-    <b>2.</b>
-    Keep confidence around <b>0.35</b> and select
-    <b>ByteTrack</b> for a clean demo.
+        <b>2.</b>
+        Keep confidence around <b>0.35</b> and select
+        <b>ByteTrack</b> for a clean demo.
 
-    <br><br>
+        <br><br>
 
-    <b>3.</b>
-    Start processing and show the annotated
-    detection + tracking output.
+        <b>3.</b>
+        Start detection and watch the processed
+        video stream.
 
-    <br><br>
+        <br><br>
 
-    <b>4.</b>
-    Open <b>Analytics</b> to explain detection
-    counts and class distribution.
+        <b>4.</b>
+        Open <b>Analytics</b> to explain detection
+        counts and class distribution.
 
-    </div>
-    """, unsafe_allow_html=True)
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
 
 
     st.info(
-        "Tip: For the strongest demo, use a video "
-        "containing multiple moving objects so "
-        "the persistent IDs are clearly visible."
+        "Tip: Use a video containing multiple moving "
+        "objects so persistent IDs are clearly visible."
     )
 
 
@@ -589,13 +602,16 @@ if page == "🏠 Command Center":
 elif page == "🎥 Live Detection":
 
     st.markdown(
-        '<div class="hero">'
-        '<span class="badge">LIVE CAMERA</span>'
-        '<h1>Live Detection</h1>'
-        '<p>'
-        'Real-time webcam detection and multi-object tracking.'
-        '</p>'
-        '</div>',
+        """
+        <div class="hero">
+            <span class="badge">LIVE CAMERA</span>
+            <h1>Live Detection</h1>
+            <p>
+                Real-time webcam detection and
+                multi-object tracking.
+            </p>
+        </div>
+        """,
         unsafe_allow_html=True
     )
 
@@ -603,80 +619,42 @@ elif page == "🎥 Live Detection":
     if not WEBRTC_AVAILABLE:
 
         st.error(
-            "Webcam mode needs streamlit-webrtc. "
-            "Install the requirements from requirements.txt "
-            "and restart the app."
+            "Webcam mode needs streamlit-webrtc."
         )
-
-        st.code(
-            "pip install -r requirements.txt"
-        )
-
 
     else:
-
-        st.markdown("### Camera stream")
-
-        st.caption(
-            "Allow browser camera permission when prompted. "
-            "Detection and tracking run on incoming frames."
-        )
 
         model = load_model(
             model_choice
         )
 
 
-        class VideoProcessor:
+        def webcam_callback(frame):
 
-            def __init__(self):
+            img = frame.to_ndarray(
+                format="bgr24"
+            )
 
-                self.model = model
-                self.frame_count = 0
-                self.last_count = 0
-                self.last_ids = set()
+            results = model.track(
+                img,
+                persist=True,
+                conf=conf,
+                iou=iou,
+                tracker=tracker,
+                verbose=False,
+            )
 
+            result = results[0]
 
-            def recv(self, frame):
+            annotated = draw_results(
+                img,
+                result
+            )
 
-                img = frame.to_ndarray(
-                    format="bgr24"
-                )
-
-
-                results = self.model.track(
-                    img,
-                    persist=True,
-                    conf=conf,
-                    iou=iou,
-                    tracker=tracker,
-                    verbose=False,
-                )
-
-
-                result = results[0]
-
-
-                annotated = draw_results(
-                    img,
-                    result
-                )
-
-
-                (
-                    self.last_count,
-                    _,
-                    self.last_ids
-                ) = result_stats(result)
-
-
-                self.frame_count += 1
-
-
-                return av.VideoFrame.from_ndarray(
-                    annotated,
-                    format="bgr24"
-                )
+            return av.VideoFrame.from_ndarray(
+                annotated,
+                format="bgr24"
+            )
 
 
         rtc_config = RTCConfiguration(
@@ -693,41 +671,50 @@ elif page == "🎥 Live Detection":
 
 
         webrtc_streamer(
-
             key="visionflow-live",
-
             mode=WebRtcMode.SENDRECV,
-
             rtc_configuration=rtc_config,
-
-            video_processor_factory=VideoProcessor,
-
+            video_frame_callback=webcam_callback,
             media_stream_constraints={
                 "video": True,
                 "audio": False
             },
-
             async_processing=True,
         )
 
 
 # =========================================================
-# VIDEO LAB
+# VIDEO LAB - REAL-TIME SERVER TO BROWSER STREAM
 # =========================================================
 
 elif page == "📹 Video Lab":
 
     st.markdown(
-        '<div class="hero">'
-        '<span class="badge">VIDEO ANALYSIS</span>'
-        '<h1>Video Lab</h1>'
-        '<p>'
-        'Upload a video and process every frame '
-        'through detection + tracking.'
-        '</p>'
-        '</div>',
+        """
+        <div class="hero">
+            <span class="badge">VIDEO ANALYSIS</span>
+
+            <h1>
+                Video Lab
+            </h1>
+
+            <p>
+                Upload a video and watch YOLO detection
+                + tracking happen in the actual video stream.
+            </p>
+        </div>
+        """,
         unsafe_allow_html=True
     )
+
+
+    if not WEBRTC_AVAILABLE:
+
+        st.error(
+            "Video streaming requires streamlit-webrtc."
+        )
+
+        st.stop()
 
 
     uploaded = st.file_uploader(
@@ -745,17 +732,12 @@ elif page == "📹 Video Lab":
     if uploaded:
 
         # -------------------------------------------------
-        # Save uploaded video
+        # Save uploaded file
         # -------------------------------------------------
 
         input_path = Path(
             "temp_input.mp4"
         )
-
-        output_path = Path(
-            "temp_detected.mp4"
-        )
-
 
         input_path.write_bytes(
             uploaded.getbuffer()
@@ -763,22 +745,22 @@ elif page == "📹 Video Lab":
 
 
         # -------------------------------------------------
-        # Read video
+        # Read metadata
         # -------------------------------------------------
 
-        cap = cv2.VideoCapture(
+        metadata_cap = cv2.VideoCapture(
             str(input_path)
         )
 
 
         total = int(
-            cap.get(
+            metadata_cap.get(
                 cv2.CAP_PROP_FRAME_COUNT
             )
         ) or 0
 
 
-        fps = cap.get(
+        fps = metadata_cap.get(
             cv2.CAP_PROP_FPS
         )
 
@@ -788,17 +770,20 @@ elif page == "📹 Video Lab":
 
 
         width = int(
-            cap.get(
+            metadata_cap.get(
                 cv2.CAP_PROP_FRAME_WIDTH
             )
         ) or 640
 
 
         height = int(
-            cap.get(
+            metadata_cap.get(
                 cv2.CAP_PROP_FRAME_HEIGHT
             )
         ) or 480
+
+
+        metadata_cap.release()
 
 
         duration = (
@@ -809,10 +794,12 @@ elif page == "📹 Video Lab":
 
 
         # -------------------------------------------------
-        # Source information
+        # Metadata cards
         # -------------------------------------------------
 
-        st.markdown("### Source")
+        st.markdown(
+            "### Video information"
+        )
 
 
         m1, m2, m3, m4 = st.columns(4)
@@ -822,7 +809,9 @@ elif page == "📹 Video Lab":
 
             st.markdown(
                 f'<div class="metric">'
-                f'<div class="label">Resolution</div>'
+                f'<div class="label">'
+                f'Resolution'
+                f'</div>'
                 f'<div class="value">'
                 f'{width} × {height}'
                 f'</div>'
@@ -835,7 +824,9 @@ elif page == "📹 Video Lab":
 
             st.markdown(
                 f'<div class="metric">'
-                f'<div class="label">FPS</div>'
+                f'<div class="label">'
+                f'FPS'
+                f'</div>'
                 f'<div class="value">'
                 f'{fps:.1f}'
                 f'</div>'
@@ -848,7 +839,9 @@ elif page == "📹 Video Lab":
 
             st.markdown(
                 f'<div class="metric">'
-                f'<div class="label">Frames</div>'
+                f'<div class="label">'
+                f'Frames'
+                f'</div>'
                 f'<div class="value">'
                 f'{total:,}'
                 f'</div>'
@@ -861,7 +854,9 @@ elif page == "📹 Video Lab":
 
             st.markdown(
                 f'<div class="metric">'
-                f'<div class="label">Duration</div>'
+                f'<div class="label">'
+                f'Duration'
+                f'</div>'
                 f'<div class="value">'
                 f'{duration:.1f}s'
                 f'</div>'
@@ -870,11 +865,9 @@ elif page == "📹 Video Lab":
             )
 
 
-        # -------------------------------------------------
-        # Processing
-        # -------------------------------------------------
-
-        st.markdown("### Processing")
+        st.markdown(
+            "### Detection & tracking"
+        )
 
 
         start = st.button(
@@ -884,7 +877,24 @@ elif page == "📹 Video Lab":
         )
 
 
+        # =================================================
+        # START STREAM
+        # =================================================
+
         if start:
+
+            # Create a new stream ID each time.
+            stream_id = (
+                st.session_state.get(
+                    "video_stream_id",
+                    0
+                ) + 1
+            )
+
+            st.session_state[
+                "video_stream_id"
+            ] = stream_id
+
 
             model = load_model(
                 model_choice
@@ -892,278 +902,347 @@ elif page == "📹 Video Lab":
 
 
             # -------------------------------------------------
-            # Create output video
+            # Per-stream state
             # -------------------------------------------------
 
-            fourcc = cv2.VideoWriter_fourcc(
-                *"mp4v"
-            )
+            state = {
+                "cap": cv2.VideoCapture(
+                    str(input_path)
+                ),
 
+                "model": model,
 
-            writer = cv2.VideoWriter(
-                str(output_path),
-                fourcc,
-                fps,
-                (width, height)
-            )
+                "processed": 0,
 
+                "class_totals": {},
 
-            if not writer.isOpened():
+                "unique_ids": set(),
 
-                cap.release()
+                "last_frame": None,
 
-                st.error(
-                    "Could not create the output video."
-                )
+                "finished": False,
 
-                st.stop()
+                "lock": threading.Lock(),
 
+                "fps": fps,
 
-            # -------------------------------------------------
-            # Display containers
-            # -------------------------------------------------
-
-            frame_box = st.empty()
-
-            progress = st.progress(0)
-
-            status = st.empty()
-
-            stats_box = st.empty()
+                "total": total,
+            }
 
 
             # -------------------------------------------------
-            # Analytics
+            # Source callback
+            #
+            # IMPORTANT:
+            # This callback is executed by WebRTC.
+            # It does NOT use st.image().
+            #
+            # Each callback:
+            # video frame
+            #      ↓
+            # OpenCV
+            #      ↓
+            # YOLO
+            #      ↓
+            # ByteTrack / BoT-SORT
+            #      ↓
+            # annotated frame
+            #      ↓
+            # browser video stream
             # -------------------------------------------------
 
-            class_totals = {}
+            def video_source_callback(
+                pts,
+                time_base
+            ):
 
-            unique_ids = set()
+                with state["lock"]:
 
-            processed = 0
-
-            t0 = time.time()
-
-
-            # -------------------------------------------------
-            # Process frames
-            # -------------------------------------------------
-
-            while True:
-
-                ok, frame = cap.read()
+                    cap = state["cap"]
 
 
-                if not ok:
-                    break
+                    if state["finished"]:
+
+                        if state["last_frame"] is not None:
+
+                            return av.VideoFrame.from_ndarray(
+                                state["last_frame"],
+                                format="bgr24"
+                            )
+
+                        blank = np.zeros(
+                            (
+                                height,
+                                width,
+                                3
+                            ),
+                            dtype=np.uint8
+                        )
+
+                        return av.VideoFrame.from_ndarray(
+                            blank,
+                            format="bgr24"
+                        )
 
 
-                results = model.track(
-                    frame,
-                    persist=True,
-                    conf=conf,
-                    iou=iou,
-                    tracker=tracker,
-                    verbose=False,
-                )
+                    ok, frame = cap.read()
 
 
-                result = results[0]
+                    if not ok:
+
+                        state["finished"] = True
+
+                        if state["last_frame"] is not None:
+
+                            return av.VideoFrame.from_ndarray(
+                                state["last_frame"],
+                                format="bgr24"
+                            )
+
+                        blank = np.zeros(
+                            (
+                                height,
+                                width,
+                                3
+                            ),
+                            dtype=np.uint8
+                        )
+
+                        return av.VideoFrame.from_ndarray(
+                            blank,
+                            format="bgr24"
+                        )
 
 
-                annotated = draw_results(
-                    frame,
-                    result
-                )
+                    # -----------------------------------------
+                    # YOLO detection + tracking
+                    # -----------------------------------------
 
-
-                count, classes, ids = result_stats(
-                    result
-                )
-
-
-                # Class totals
-
-                for k, v in classes.items():
-
-                    class_totals[k] = (
-                        class_totals.get(k, 0)
-                        + v
+                    results = state["model"].track(
+                        frame,
+                        persist=True,
+                        conf=conf,
+                        iou=iou,
+                        tracker=tracker,
+                        verbose=False,
                     )
 
 
-                # Unique tracking IDs
-
-                unique_ids.update(
-                    ids
-                )
+                    result = results[0]
 
 
-                # Write processed frame
+                    # -----------------------------------------
+                    # Draw boxes + labels + IDs
+                    # -----------------------------------------
 
-                writer.write(
-                    annotated
-                )
+                    annotated = draw_results(
+                        frame,
+                        result
+                    )
 
 
-                # Show current detected frame
+                    # -----------------------------------------
+                    # Statistics
+                    # -----------------------------------------
 
-                frame_box.image(
-                    cv2.cvtColor(
+                    count, classes, ids = result_stats(
+                        result
+                    )
+
+
+                    for class_name, value in classes.items():
+
+                        state["class_totals"][
+                            class_name
+                        ] = (
+                            state["class_totals"].get(
+                                class_name,
+                                0
+                            ) + value
+                        )
+
+
+                    state["unique_ids"].update(
+                        ids
+                    )
+
+
+                    state["processed"] += 1
+
+                    state["last_frame"] = annotated.copy()
+
+
+                    return av.VideoFrame.from_ndarray(
                         annotated,
-                        cv2.COLOR_BGR2RGB
-                    ),
-                    channels="RGB",
-                    use_container_width=True
-                )
-
-
-                processed += 1
-
-
-                # Progress
-
-                elapsed = max(
-                    time.time() - t0,
-                    0.001
-                )
-
-
-                speed = (
-                    processed / elapsed
-                )
-
-
-                pct = (
-                    min(
-                        processed / total,
-                        1.0
+                        format="bgr24"
                     )
-                    if total
-                    else 0
-                )
-
-
-                progress.progress(
-                    pct
-                )
-
-
-                status.markdown(
-                    f"**Frame {processed:,} / "
-                    f"{total:,}** · "
-                    f"{speed:.1f} FPS · "
-                    f"**Visible:** {count} · "
-                    f"**Unique IDs:** "
-                    f"{len(unique_ids)}"
-                )
-
-
-                stats_box.json(
-                    {
-                        "visible_objects": count,
-                        "active_track_ids":
-                            sorted(ids),
-                        "class_counts":
-                            classes
-                    }
-                )
 
 
             # -------------------------------------------------
-            # Finish
+            # Create actual WebRTC video source
             # -------------------------------------------------
 
-            cap.release()
-
-            writer.release()
-
-
-            elapsed_total = (
-                time.time() - t0
+            video_source_track = create_video_source_track(
+                video_source_callback,
+                key=f"visionflow-video-source-{stream_id}",
+                fps=fps,
             )
 
 
             # -------------------------------------------------
-            # Save analytics
+            # Stop callback
             # -------------------------------------------------
+
+            def stop_video_source():
+
+                try:
+
+                    with state["lock"]:
+
+                        state["finished"] = True
+
+                        if state["cap"] is not None:
+
+                            state["cap"].release()
+
+                except Exception:
+                    pass
+
+
+            # -------------------------------------------------
+            # WebRTC configuration
+            # -------------------------------------------------
+
+            rtc_config = RTCConfiguration(
+                {
+                    "iceServers": [
+                        {
+                            "urls": [
+                                "stun:stun.l.google.com:19302"
+                            ]
+                        }
+                    ]
+                }
+            )
+
+
+            # -------------------------------------------------
+            # Actual browser video
+            # -------------------------------------------------
+
+            st.markdown(
+                "### ▶ Detected & Tracked Video"
+            )
+
+
+            st.caption(
+                "The video below is the processed stream. "
+                "YOLO detection and tracking happen on "
+                "each frame before it reaches the player."
+            )
+
+
+            webrtc_streamer(
+                key=f"visionflow-player-{stream_id}",
+
+                mode=WebRtcMode.RECVONLY,
+
+                rtc_configuration=rtc_config,
+
+                source_video_track=video_source_track,
+
+                media_stream_constraints={
+                    "video": True,
+                    "audio": False
+                },
+
+                desired_playing_state=True,
+
+                on_change=stop_video_source,
+            )
+
+
+            # -------------------------------------------------
+            # Live information
+            # -------------------------------------------------
+
+            with state["lock"]:
+
+                processed_now = state[
+                    "processed"
+                ]
+
+                unique_now = len(
+                    state["unique_ids"]
+                )
+
+                class_totals_now = dict(
+                    state["class_totals"]
+                )
+
+
+            elapsed_now = max(
+                time.time(),
+                0
+            )
+
+
+            st.markdown(
+                f"""
+                <div class="card">
+
+                <b>Frames processed:</b>
+                {processed_now:,}
+
+                &nbsp;&nbsp;|&nbsp;&nbsp;
+
+                <b>Unique tracking IDs:</b>
+                {unique_now}
+
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
+
+
+            # Save latest analytics.
 
             st.session_state[
                 "last_analytics"
             ] = {
 
                 "class_totals":
-                    class_totals,
+                    class_totals_now,
 
                 "unique_ids":
-                    len(unique_ids),
+                    unique_now,
 
                 "frames":
-                    processed,
+                    processed_now,
 
                 "elapsed":
-                    elapsed_total,
-
+                    0,
             }
-
-
-            progress.progress(
-                1.0
-            )
-
-
-            st.success(
-                f"Completed. Processed "
-                f"{processed:,} frames with "
-                f"{len(unique_ids)} unique "
-                f"track IDs."
-            )
-
-
-            # -------------------------------------------------
-            # FINAL DETECTED VIDEO PLAYER
-            # -------------------------------------------------
-
-            if (
-                output_path.exists()
-                and output_path.stat().st_size > 0
-            ):
-
-                st.markdown(
-                    "### ▶ Detected & Tracked Video"
-                )
-
-
-                video_bytes = (
-                    output_path.read_bytes()
-                )
-
-
-                st.video(
-                    video_bytes,
-                    format="video/mp4"
-                )
-
-
-            else:
-
-                st.error(
-                    "The processed video "
-                    "could not be generated."
-                )
 
 
     else:
 
         st.markdown(
-            '<div class="card">'
-            '<b>Supported:</b> MP4, AVI, MOV, MKV and WEBM.'
-            '<br>'
-            '<span class="small">'
-            'For the demo, choose a clip with several '
-            'moving objects.'
-            '</span>'
-            '</div>',
+            """
+            <div class="card">
+
+            <b>Supported:</b>
+            MP4, AVI, MOV, MKV and WEBM.
+
+            <br><br>
+
+            <span class="small">
+            Upload a video containing moving people,
+            cars or other objects for the tracking demo.
+            </span>
+
+            </div>
+            """,
             unsafe_allow_html=True
         )
 
@@ -1175,14 +1254,16 @@ elif page == "📹 Video Lab":
 elif page == "🖼️ Image Inspector":
 
     st.markdown(
-        '<div class="hero">'
-        '<span class="badge">SINGLE FRAME</span>'
-        '<h1>Image Inspector</h1>'
-        '<p>'
-        'Quickly validate the detector before '
-        'running a full video.'
-        '</p>'
-        '</div>',
+        """
+        <div class="hero">
+            <span class="badge">SINGLE FRAME</span>
+            <h1>Image Inspector</h1>
+            <p>
+                Quickly validate the detector before
+                running a full video.
+            </p>
+        </div>
+        """,
         unsafe_allow_html=True
     )
 
@@ -1292,14 +1373,20 @@ elif page == "🖼️ Image Inspector":
 elif page == "📊 Analytics":
 
     st.markdown(
-        '<div class="hero">'
-        '<span class="badge">INSIGHTS</span>'
-        '<h1>Analytics</h1>'
-        '<p>'
-        'Turn the detection stream into a clean story '
-        'for your internship demo.'
-        '</p>'
-        '</div>',
+        """
+        <div class="hero">
+            <span class="badge">INSIGHTS</span>
+
+            <h1>
+                Analytics
+            </h1>
+
+            <p>
+                Turn the detection stream into
+                a clean project story.
+            </p>
+        </div>
+        """,
         unsafe_allow_html=True
     )
 
@@ -1312,9 +1399,7 @@ elif page == "📊 Analytics":
     if not data:
 
         st.warning(
-            "Run a video from Video Lab first. "
-            "Analytics from the latest run "
-            "will appear here."
+            "Run a video from Video Lab first."
         )
 
 
@@ -1383,8 +1468,7 @@ elif page == "📊 Analytics":
         else:
 
             st.info(
-                "No object classes were detected "
-                "in the last run."
+                "No object classes were detected."
             )
 
 
@@ -1395,51 +1479,67 @@ elif page == "📊 Analytics":
 else:
 
     st.markdown(
-        '<div class="hero">'
-        '<span class="badge">PROJECT DETAILS</span>'
-        '<h1>About VisionFlow</h1>'
-        '<p>'
-        'A real-time computer-vision workspace '
-        'for detection, tracking and analytics.'
-        '</p>'
-        '</div>',
+        """
+        <div class="hero">
+
+            <span class="badge">
+                PROJECT DETAILS
+            </span>
+
+            <h1>
+                About VisionFlow
+            </h1>
+
+            <p>
+                A real-time computer-vision workspace
+                for detection, tracking and analytics.
+            </p>
+
+        </div>
+        """,
         unsafe_allow_html=True
     )
 
 
-    st.markdown("""
-    <div class="card">
+    st.markdown(
+        """
+        <div class="card">
 
-    <h3>Technology stack</h3>
+        <h3>
+            Technology stack
+        </h3>
 
-    <ul>
+        <ul>
 
-        <li>
-            <b>Python + Streamlit</b>
-            — web application UI
-        </li>
+            <li>
+                <b>Python + Streamlit</b>
+                — web application UI
+            </li>
 
-        <li>
-            <b>OpenCV</b>
-            — video capture and frame processing
-        </li>
+            <li>
+                <b>OpenCV</b>
+                — video capture and frame processing
+            </li>
 
-        <li>
-            <b>Ultralytics YOLO</b>
-            — pretrained real-time object detector
-        </li>
+            <li>
+                <b>Ultralytics YOLO</b>
+                — real-time object detection
+            </li>
 
-        <li>
-            <b>ByteTrack / BoT-SORT</b>
-            — multi-object tracking with persistent IDs
-        </li>
+            <li>
+                <b>ByteTrack / BoT-SORT</b>
+                — multi-object tracking
+                with persistent IDs
+            </li>
 
-        <li>
-            <b>streamlit-webrtc</b>
-            — browser webcam streaming
-        </li>
+            <li>
+                <b>streamlit-webrtc</b>
+                — real-time browser video streaming
+            </li>
 
-    </ul>
+        </ul>
 
-    </div>
-    """, unsafe_allow_html=True)
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
